@@ -1,0 +1,7 @@
+#	$eterna: meta1,v 1.2 2001/08/12 15:57:11 mrg Exp $
+#
+# When the ESC key is not in the left corner,
+# maybe the ` key is. Then use ` as META1!
+#
+bind ` meta1
+bind meta1-` type `

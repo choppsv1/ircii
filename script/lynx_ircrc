@@ -1,0 +1,8 @@
+#	$eterna: lynx_ircrc,v 1.2 2001/08/12 15:57:11 mrg Exp $
+#
+# A good ircrc to start with!  *grin*   lynx 92
+load basicall
+load events
+load msg
+# load commander
+# load alias

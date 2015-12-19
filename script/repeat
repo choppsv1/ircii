@@ -1,0 +1,22 @@
+#	$eterna: repeat,v 1.2 2001/08/12 15:57:12 mrg Exp $
+#
+# Use a simply while loop to repeat a command.
+alias repeat {
+	@ rep.cnt = [$0]
+	while ( rep.cnt > 0 )
+	{
+		$1-
+		@rep.cnt = rep.cnt - 1
+	}
+	^assign -rep.cnt
+}
+
+# Do the samn thing with recursion  See.. SET MAX_RECURSIONS
+alias recrepeat {
+	if ([$0] > 0)
+	{
+		$1-
+		recrepeat ${[$0] -1} $1-
+	}
+}
+	

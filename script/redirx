@@ -1,0 +1,188 @@
+# redirx.irc v1.3
+# Automatically shortens URLs seen, using the redirx service.
+# tristan+irc@ethereal.net 24jul2003, 7jul2006
+
+# to do:
+# - replace long urls on output, too
+
+
+# server to connect to:
+@ redirx.host = [redirx.com]
+@ redirx.port = 5313
+
+# if response not received within this many seconds, assume server is
+# dead
+@ redirx.timeout = 5
+
+# try to connect again after this many seconds, if connection is lost
+@ redirx.retry = 120
+
+# only shorten URLs at least this many characters long:
+@ redirx.minlength = 60
+
+# suppress original non-changed output?
+# must reload script after changing this!
+@ redirx.replace = 1
+
+# show connect/disconnect/etc. information
+@ redirx.debug = 1
+
+
+alias redirx.debug {
+  if (redirx.debug) {
+    echo *** $*
+  }
+}
+
+alias redirx.close {
+  if (redirx.fd) {
+    ^dcc close raw $redirx.fd
+    redirx.debug Redirx connection on fd $redirx.fd closed
+    ^assign -redirx.fd
+    ^assign -redirx.ready
+  }
+}
+
+alias redirx.open {
+  redirx.close
+  @ connect($redirx.host $redirx.port)
+  @ redirx.counter = 0
+  @ redirx.queuepos = 0
+}
+
+alias redirx.send {
+  if (redirx.fd && redirx.ready) {
+    if (match(http://redirx.com/* $0)) {
+      redirx.debug Not sending already-shortened URL
+    } {
+      dcc raw $redirx.fd $redirx.host $0
+      @ redirx.counter = redirx.counter + 1
+      @ function_return = 1
+    }
+  } {
+    redirx.debug Redirx not ready
+  }
+}
+
+alias redirx.timeouthandler {
+  if (redirx.queue[$redirx.counter]) {
+    xecho -window $redirx.queue[$redirx.counter] [redirx] timeout
+    ^assign -redirx.queue.$redirx.counter
+    redirx.open
+  }
+}
+
+alias redirx.search {
+  if (!rmatch([redirx] $1-)) {
+    @ redirx.search.line = [$1-]
+    @ redirx.search.numwords = #redirx.search.line
+    @ redirx.search.count = 0
+    while (redirx.search.count < redirx.search.numwords) {
+      @ redirx.search.curword = word($redirx.search.count $redirx.search.line)
+      if (match(http://* $redirx.search.curword) || match(https://* $redirx.search.curword)) {
+#        redirx.debug Found URL
+        if (!redirx.search.didit && @redirx.search.curword >= redirx.minlength && !match(http://redirx.com/* $redirx.search.curword) && redirx.send($redirx.search.curword)) {
+          @ redirx.search.didit = 1
+          ^assign redirx.queue.$redirx.counter $*
+          timer $redirx.timeout redirx.timeouthandler $redirx.counter
+        }
+      }
+      @ redirx.search.count = redirx.search.count + 1
+    }
+    ^assign -redirx.search.line
+    ^assign -redirx.search.numwords
+    ^assign -redirx.search.count
+    ^assign -redirx.search.curword
+  }
+  if (!redirx.search.didit && redirx.replace) {
+    xecho -window $*
+  }
+  ^assign -redirx.search.didit
+}
+
+alias redirx {
+  if (![$0] || [$1]!=[]) {
+    echo *** Usage: ${K}redirx <URL>
+  } {
+    redirx.send $*
+  }
+}
+
+on ^dcc_raw * #
+
+eval on #-dcc_raw 54 "% $redirx.host E $redirx.port" {
+  @ redirx.fd = [$0]
+  redirx.debug Redirx connection opened on fd $0
+}
+
+eval on #-dcc_raw 54 "% $redirx.host D *" {
+  if ([$3]==[OK]) {
+    @ redirx.queuepos = redirx.queuepos + 1
+    if (redirx.queue[$redirx.queuepos]) {
+      @ redirx.replace.line = redirx.queue[$redirx.queuepos]
+      @ redirx.replace.numwords = #redirx.replace.line
+      @ redirx.replace.count = 0
+      while (redirx.replace.count < redirx.replace.numwords) {
+        @ redirx.replace.curword = word($redirx.replace.count $redirx.replace.line)
+        if ((match(http://* $redirx.replace.curword) || match(https://* $redirx.replace.curword)) && @redirx.replace.curword >= redirx.minlength && !match(http://redirx.com/* $redirx.replace.curword) && !redirx.replace.didit) {
+          if (redirx.replace.newline) {
+            @ redirx.replace.newline = [$redirx.replace.newline $4]
+          } {
+            @ redirx.replace.newline = [$4]
+          }
+          @ redirx.replace.didit = 1
+        } {
+          if (redirx.replace.newline) {
+            @ redirx.replace.newline = [$redirx.replace.newline $redirx.replace.curword]
+          } {
+            @ redirx.replace.newline = redirx.replace.curword
+          }
+        }
+        @ redirx.replace.count = redirx.replace.count + 1
+      }
+      xecho -window $redirx.replace.newline
+      ^assign -redirx.queue.$redirx.queuepos
+      ^assign -redirx.replace.line
+      ^assign -redirx.replace.numwords
+      ^assign -redirx.replace.count
+      ^assign -redirx.replace.curword
+      ^assign -redirx.replace.newline
+      ^assign -redirx.replace.didit
+    } {
+      echo *** Shortened URL: $4-
+    }
+  } {
+    if ([$3]==[ERROR]) {
+      @ redirx.queuepos = redirx.queuepos + 1
+      echo *** Redirx error: $4-
+    } {
+      if ([$3]==[REDIRXD] && match(V*.* $4)) {
+        redirx.debug Redirx protocol OK
+        @ redirx.ready = 1
+      } {
+        redirx.debug Redirx: $3-
+      }
+    }
+  }
+}
+
+eval on #-dcc_raw 54 "% $redirx.host C" {
+  redirx.debug Redirx connection on fd $0 lost!
+  ^assign -redirx.fd
+  ^assign -redirx.ready
+  timer -refnum 54 $redirx.retry redirx.open
+}
+
+if (redirx.replace) {
+  on #-window 54 -"% *http://*"
+  on #-window 54 -"% *https://*"
+  on ^window "% *http://*" redirx.search $$*
+  on ^window "% *https://*" redirx.search $$*
+} {
+  on ^window -"% *http://*"
+  on ^window -"% *https://*"
+  on #-window 54 "% *http://*" redirx.search $$*
+  on #-window 54 "% *https://*" redirx.search $$*
+}
+
+redirx.open

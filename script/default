@@ -1,0 +1,108 @@
+#	$eterna: default,v 1.5 2004/02/16 10:00:00 mrg Exp $
+#
+# this makes <tab> work with /msg properly
+load tabkey
+
+# screen is the coolest; thanks av.
+load screen
+
+# this loads all the ICB support necessary
+load icb
+
+# default bindings to change to sanity.
+bind ^Z self_insert
+bind ^[ meta1_character
+bind ^V quote_character
+bind ^W delete_previous_word
+
+# these are ESC- things to work more like emacs
+bind meta1-^? delete_previous_word
+bind meta1-^H delete_previous_word
+bind meta1-l parse_command lastlog 10
+
+# some aliases that are very useful
+alias umode mode $N
+alias whowas if ([$1]) { ${K}${K}whowas $0 $1 } { ${K}${K}whowas $0 1 }
+alias d dmsg
+alias m msg
+alias w whois
+alias . msg .
+alias , msg ,
+alias topic if (ischannel($0) || servertype() == [ICB]) { ${K}${K}topic $* } { ${K}${K}topic $C $* }
+alias invite if ( [$1] ) { ${K}${K}invite $0 $1 } { ${K}${K}invite $0 $C }
+
+# ok now we really start to change things with /set
+set show_status_all off
+set full_status_line off
+set clock on
+set beep_max 1
+# we do this by default for security reasons.
+set -history_file
+set show_channel_names on
+set input_prompt $T> 
+
+# hooks
+
+# aliases specifically for this section.
+alias n.o {
+	if (SHOW_NUMERICS == [ON]) {
+		@ function_return = [$0]
+	} {
+		if ([$1]) {
+			@ function_return = [$1]
+		} {
+		@ function_return = [***]
+		}
+	}
+}
+alias myuh if (userhost() != []) { @function_return = [<] ## userhost() ## [> ] } { @function_return = [] }
+alias chan.wid
+{
+	@chan.lame = [$0]
+	if ([$@chan.lame] < CHANNEL_NAME_WIDTH)
+		{ @function_return = chan.lame }
+		{ eval @function_return = [$$\[$CHANNEL_NAME_WIDTH\]chan.lame] }
+}
+alias my.serv if (rmatch($0 $myservers())) { @function_return = [] } { @function_return = [\(from $0\)] }
+alias kk.reason if ([$0]) { @function_return = [\(] ## [$*] ## [\) ] } { @function_return = [] }
+alias ctcp.ping if ([$0]) { @function_return = [${time() - [$0]} seconds ] } { @function_return = [] }
+
+# to reformat a heap of things.
+on ^public * echo $Z <$(0)> $2-
+on ^public_other * xecho -window $winnum() $Z <$(0)/$1> $2-
+on ^public_msg * echo $Z \($(0)/$1) $2-
+on ^send_public * if (C == [$0]) { echo $Z > $1- } { echo $Z $0> $1- }
+
+on ^msg * echo $Z *$0* $1-
+on ^send_msg * echo $Z -> *$0* $1-
+
+on ^dcc_chat * echo $Z =$0= $1-
+on ^send_dcc_chat * echo $Z -> =$0= $1-
+
+on ^join "% *" echo $Z [join] $0 $myuh()to $1
+on ^leave * echo $Z [part] $0 $myuh()from $1
+on ^kick * echo $Z [kick] $0 from $2 by $1 $myuh()$kk.reason($3-)
+
+on ^topic * echo $Z [topic] $0 $myuh()changed on $1 to \{ $2- \}
+on ^nick * echo $Z [nick] $0 $myuh()changed to $1
+
+# stop these types of ctcp messages appearing on the screeen
+on ^ctcp ^"% % ACTION *"
+on ^ctcp ^"% % SED *"
+on ^ctcp ^"% % CAST128ED *"
+on ^ctcp ^"% % CAST128ED-CBC *"
+
+on ^notice "% *" echo $Z -$(0)- $2-
+on ^public_notice "% *" if (C == [$1]) { echo $Z -$(0)- $2- } { echo $Z -$(0)$(1)- $2- }
+on ^send_notice echo $Z -> -$(0)- $1-
+
+on ^msg_group "*" echo $Z +$0 -> $1+ $2-
+
+on ^signoff * echo $Z [quit] $0 $myuh()started wasting time elsewhere \($1-\)
+
+on ^action * if (ischannel($1)) { echo $Z * $0 $2- } { xecho -level msgs $Z * $0 $2- }
+on ^send_action * if (ischannel($0)) { echo $Z * $N $1- } { xecho -level msgs $Z * -> $0: $N $1- }
+
+on ^mode * if (ischannel($1))
+	{ echo $Z [mode] $0 $myuh()added "$2-" to $1 }
+	{ echo $Z [mode] $0 added "$2-" to you }

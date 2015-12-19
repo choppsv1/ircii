@@ -1,0 +1,398 @@
+.\"	$eterna: ircII.1,v 1.31 2014/08/25 19:24:49 mrg Exp $
+.Dd August 25, 2014
+.Dt IRCII 1
+.Os
+.Sh NAME
+.Nm ircII
+.Nd interface to the Internet Relay Chat system
+.Sh SYNOPSIS
+.Nm irc
+.Op Fl abdFfqrSsTtv
+.Op Fl c Ar chan
+.Op Fl D Ar level
+.Op Fl e Ar protocol level
+.Op Fl H Ar hostname Ns Bq Ar :port
+.Op Fl h Ar hostname Ns Bq Ar :port
+.Op Fl I Ar ircrcquick
+.Op Fl icb
+.Op Fl irc
+.Op Fl l Ar ircrc
+.Op Fl o Ar file
+.Op Fl P Ar portno
+.Op Fl p Ar portno
+.Op Fl R Ar proxyhost Ns Bq Ar :port
+.Op Ar nickname Op Ar server list
+.Op Fl Fl
+.Sh DESCRIPTION
+The
+.Nm
+program is a full screen, termcap based interface to Internet Relay
+Chat.
+It gives full access to all of the normal IRC functions, plus a
+variety of additional options.
+.Sh OPTIONS
+The following options are supported:
+.Bl -tag -width 25n
+.It Fl a
+This adds the normal irc server list to the command line list of irc
+servers.
+.It Fl b
+Load the
+.Pa .ircrc
+file before connection to a server, not afterwards.
+.It Fl c Ar chan
+Automatically join channel
+.Ar chan .
+.It Fl d
+Start in non-full screen mode.
+All input is taken directly from stdin and all output goes to stdout
+without using any of the
+.Xr termcap 5
+screen control codes.
+.It Fl D Ar level
+Enable debugging of
+.Ar level .
+This option is only available if
+.Nm
+is built with
+.Dv -DDEBUG .
+.It Fl e Ar protocol level
+For protocol
+.Ar protocol ,
+set the default encryption (SSL) level to
+.Ar level .
+Currently, only "IRC" is supported for the
+.Ar protocol
+and the values that
+.Ar level
+can take are "check", "nocheck", and "off".
+Please also see the description of the "server list" below.
+.It Fl F
+Don't use flow control (^S and ^Q) to stop start the display.
+This switch is ignored if the
+.Fl d
+switch is used.
+.It Fl f
+Use flow control (^S and ^Q) to stop/start the display.
+Normally these are both bound to other functions within
+.Nm .
+This switch is ignored if the
+.Fl d
+switch is used.
+.It Fl H Ar hostname Ns Bq Ar :port
+This option instructs
+.Nm
+to use the given
+.Ar hostname
+as the local address for DCC, and works otherwise identically to the
+.Fl h
+option.
+.It Fl h Ar hostname Ns Bq Ar :port
+This option instructs
+.Nm
+to use the given
+.Ar hostname
+as the local address.
+Useful only on multi-homed hosts.
+If the optional port segment is included,
+.Nm
+will attempt to bind to this local port as well as local host address.
+If the hostname is an IPv6 "number", it must be provided in the common
+.Ar Bq 12:34:ab:cd
+format.
+This means for an IPv6 "number" and port, it would be written
+.Ar [12:34:ab:cd]:6669 .
+.It Fl icb
+Use ICB connections by default.
+.It Fl irc
+Use IRC connections by default.
+.It Fl l Ar ircrc
+Use
+.Ar ircrc
+Instead of the default
+.Pa ~/.ircrc .
+.It Fl o Ar file
+Set the debug output file to
+.Ar file .
+This option is only available if
+.Nm
+is built with
+.Dv -DDEBUG .
+.It Fl P Ar portno
+Set the ICB port number to
+.Ar portno
+(default: 7326, the standard ICB port).
+.It Fl p Ar portno
+Set the IRC port number to
+.Ar portno
+(default: 6667, the standard IRC port).
+Only supply this if you connect to a server which uses a port other than 6667.
+.It Fl q
+Start up
+.Nm
+quickly.
+Don't load the IRCRC file, only the quick IRCRC file set by the
+.It Fl I
+option.
+.It Fl R Ar proxyhost Ns Bq Ar :port
+Set the default HTTP proxy host for server connections to
+.Ar proxyhost:port .
+.It Fl r
+Reverse the normal default foreground and background colours.
+.It Fl S
+Start up the ircio process to connect to the IRC server.
+.It Fl s
+Don't start up the ircio process to connect to the IRC server (default).
+.It Fl T
+Do use the termcap
+.Dv ti
+and
+.Dv te
+sequences when starting and exiting if they exist.
+.It Fl t
+Don't use the termcap
+.Dv ti
+and
+.Dv te
+sequences when starting and exiting (default).
+.It Fl v
+Print the version and release date of
+.Nm
+and exit.
+.It Fl Fl
+End all option processing.
+.El
+.Pp
+The remaining command line arguments are:
+.Bl -bullet
+.It
+.Ar nickname
+Set the nickname
+(overrides the environment variable
+.Ev IRCNICK ;
+default: the username).
+.It
+.Ar server list
+Set the list of servers with which
+.Nm
+will try to connect upon startup.
+This list is also used by the program's
+.Ic /server
+command.
+.El
+.Pp
+For IRC connections, the format is:
+.Ar hostname Ns Op Ar :portno Ns Op Ar :password Ns Op Ar :nick
+.Pp
+For ICB connections, the format is:
+.Ar ICB/hostname Op Ar :portno Ns Op Ar :nick Ns Op Ar :group Ns Op Ar :mode
+with
+.Ar group
+being the initial group and
+.Ar mode
+being the initial group mode.
+See
+.Ic /HELP ICB
+for more information about ICB.
+.Pp
+If the
+.Ar hostname
+is in the format
+.Ar :servergroup:host.com
+then
+.Ar servergroup
+is taken to be the Server Group for this server entry.
+.Pp
+If the
+.Ar hostname
+is prefixed with
+.Cm SSLIRC/
+or
+.Cm SSLIRCNOCHECK/
+then an attempt will be made to initiate an SSL/TLS connection
+for this host.
+The
+.Cm SSLIRCNOCHECK/
+form does not verify the remote server's certificate, which
+may have security implications.
+Please see SSL/TLS documentation for more information.
+.Pp
+If the
+.Ar hostname
+is prefixed with
+.Cm PROXY/proxyname:proxyport/
+then this server will be connected via specified HTTP proxy server.
+The
+.Cm NO_PROXY/
+prefix will disable any global proxy setting for this server.
+.Sh DETAILED DESCRIPTION
+.Ss The Screen
+The
+screen is split into two parts, separated by an inverse-video
+status line (if supported).
+The upper (larger) part of the screen displays responses from the IRC
+server.
+The lower part of the screen (a single line) accepts keyboard input.
+.Pp
+Some terminals do not support certain features required by
+.Nm ,
+in which case you receive a message stating this.
+If this occurs, try changing the terminal type or run
+.Nm
+with the
+.Fl d
+option.
+.Ss IRC Commands
+Any line beginning with the slash character
+.Pq Sq /
+is regarded as an
+.Nm
+command (the command character may be changed; type
+.Ic /help set cmdchar ) .
+Any line not beginning with this character is treated as a message to
+be sent to the current channel.
+To produce a listing of commands, type
+.Ic /help \&? .
+To receive information about the commands type
+.Ic /help <command> .
+.Ss The .ircrc File
+When
+.Nm
+is executed, it checks the user's home directory for a
+.Pa .ircrc
+file, executing the commands in the file.
+Commands in this file do not
+need to have a leading slash character
+.Pq Sq / .
+This allows predefinition of aliases and other features.
+.Sh ENVIRONMENT
+It can be helpful to predefine certain variables in
+in the
+.Pa .cshrc ,
+.Pa .profile ,
+or
+.Pa .login
+file:
+.Bl -tag -width 12n
+.It Dv IRCNICK
+The user's
+.Nm
+nickname.
+.It Dv IRCNAME
+The user's IRC realname (otherwise retreived from
+.Pa /etc/passwd )
+.It Dv IRCSERVER
+The default IRC server(s) (see server option for details)
+.It Dv IRCSERVERSFILE
+The file containing the default list of server(s), usually
+.Pa PREFIX/share/irc/ircII.servers .
+This file should contain one server entry per line.
+.It Dv HOME
+Overrides the default home path in
+.Pa /etc/passwd .
+.It Dv TERM
+The type of terminal in use.
+.El
+.Sh FILES
+.Bl -tag -width 20n
+.It Pa ~/.ircrc
+default initialization file
+.It Pa ~/.irc/
+directory into which you can put your own
+.Nm
+scripts, that can then be loaded with
+.Ic /load
+.It Pa .../share/irc/
+directory containing message-of-the-day, master initialization, help files, and
+.Nm
+scripts
+.It Pa .../share/irc/script/global
+file loaded at the start of every
+.Nm
+session.
+.It Pa PREFIX/share/irc/ircII.servers
+The initial list of servers if none are provided on the command line.
+.It Pa PREFIX/share/irc/ircII.motd
+Message of the day.
+This file is displayed only once each time it is changed.
+.El
+.Sh EXAMPLES
+.Dl irc -c #users -p 5555
+Connect IRC to port number 5555 of the default host and enter on channel #users.
+.Dl irc Mermaid
+Use the nickname
+.Dq Mermaid .
+.Dl irc Mermaid server1:5000 server2::passwd server3
+Use the nickname
+.Dq Mermaid
+and the modified server list.
+.Dl irc piglet3 :ln:irc1.lamenet.org :ln:irc.us.lamenet.org
+Use the nickname
+.Dq piglet3 ,
+initially connecting to irc.au.lamenet.org,
+with also irc.us.lamenet.org added to the server list, both having a
+server group name
+.Dq ln .
+.Dl irc oink ICB/www.icb.net
+Use the nick
+.Dq oink
+making an ICB connection to www.icb.net.
+.Dl irc -d
+Use dumb mode.
+.Dl irc -f
+Allow use of ^S/^Q to stop/start screen display.
+.Dl irc -e elisa
+Interface IRC with a program called
+.Dq elisa .
+.Bd -literal -offset indent
+setenv IRCNICK Mermaid
+setenv IRCNAME \"The one and only :)\"
+irc
+.Ed
+Set the username (if not specified elsewhere) to
+.Dq Mermaid .
+The user's name (when provided inside parentheses in response to a
+.Ic WHOIS
+command) is set to
+.Dq The one and only :) .
+.Sh THE HELP FILES
+All of the
+.Nm
+commands are fully described in the help files package.
+The best way to start here is with the
+.Ic /HELP \&?
+command as this prints a listing of all available help files.
+.Sh SIGNALS
+.Nm
+handles the following signals
+.Bl -tag -width 15n
+.It Dv SIGUSR1
+Closes all DCC connections and EXEC'ed processes.
+.It Dv SIGUSR2
+Drops
+.Nm
+back to the command line.
+.El
+.Sh SEE ALSO
+.Xr irc 1 ,
+.Xr ircd 8
+.Sh AUTHORS
+.An -nosplit
+Program written by
+.An Michael Sandrof Aq Mt ms5n+@andrew.cmu.edu .
+Now being maintained by
+.An Matthew Green Aq Mt mrg@eterna.com.au
+Names of contributors and contact address can be retrieved with the
+.Ic /info
+command.
+This manual page written by
+.An Darren Reed Aq Mt avalon@coombs.anu.EDU.AU ,
+revised by
+.An R. P. C. Rodgers Aq Mt rodgers@maxwell.mmwb.ucsf.edu ,
+by the
+.An lynX ,
+and by
+.An Matthew Green Aq Mt mrg@eterna.com.au .
+.Sh BUGS
+Please notify the current developer of the software of any bugs in
+current versions.

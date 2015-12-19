@@ -1,0 +1,21 @@
+this directory contains various patches that have been sent to
+the ircII project for possible inclustion, as well as other 
+interesting tools useful for ircii.
+
+they are detailed below, but, beware that they may or may not work,
+or even patch cleanly.
+
+check_load - a patch to allow fascist administrators to make their
+users client's automatically exit if the machine load average gets
+higher than a pre-defined limit.  this patch is not scheduled for
+inclusion in to any future ircII release.
+
+random_nick - patch to allow ircII to randomly choose a nickname
+when one is required "immediately".  this patch will probably not
+be included in future ircII.
+
+noansi.c - program to remove dos ansi colour sequences.
+
+the colour support has been integrated.
+
+the japanese support has been integrated.

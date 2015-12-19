@@ -1,0 +1,40 @@
+#	$eterna: columns,v 1.4 2002/09/03 02:39:28 mrg Exp $
+#
+# columnate some output 
+
+# this lets the `times' script know we need to be reloaded if
+# it is loaded.  we check ircii.loaded_times to see if we should
+# prefix things with $Z or not.  this is all pretty evil, but it
+# is necessary for /load columns /load times to work.
+assign ircii.loaded_columns 1
+
+alias format {
+	assign IRCII.word $1
+	if ( @IRCII.word < [$0] ) {
+		if (ircii.loaded_times) {
+			assign function_return $Z $([-$0]1)
+		} {
+			assign function_return $([-$0]1)
+		}
+	} {
+		if (ircii.loaded_times) {
+			assign function_return $Z $1
+		} { 
+			assign function_return $1
+		}
+	}
+}
+
+on ^public * echo $format(11 <$0>) $2-
+on ^send_public * {
+	if ( C == [$0] )
+		{ echo $format(11 <$N>) $1- }
+		{ echo $format(10 <$N):$0> $1- }
+}
+on ^public_other * echo $format(10 <$0):$1> $2-
+on ^msg * echo $format(11 *$0*) $1-
+on ^send_msg * echo -> $format(8 *$0*) $1-
+on ^notice * echo $format(11 -$(0)-) $2-
+on ^send_notice * echo -> $format(8 -$(0)-) $1-
+on ^wall * echo $format(11 #$0#) $1-
+set continued_line             

@@ -1,0 +1,6 @@
+#	$eterna: meta2,v 1.2 2001/08/12 15:57:11 mrg Exp $
+#
+# TAB becomes the META2 key here...
+#
+bind ^i meta2
+bind meta2-^i toggle_insert_mode

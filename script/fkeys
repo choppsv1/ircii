@@ -1,0 +1,152 @@
+###
+### vim:ts=8 ai si sw=4 sta sm:
+### $Id: fkeys,v 1.1 2002/08/22 12:59:20 mrg Exp $
+### Bind function keys to actions
+###
+
+# Unbound Keys insert the sequence <key:XX> where XX is the code
+# you use to bind an action. -- See bottom of the script for examples.
+
+alias fk.help {
+    echo *** set \$fk.<string> to the commands for fkeys
+}
+
+eval if (!match(%+fk% $script_info)){
+    assign script_info $script_info+fk
+};set client_info Sec$script_info
+
+bind meta1-[ parse ^assign -fk.key;parsekey meta2_character
+bind meta1-O parse ^assign -fk.key;parsekey meta2_character
+bind meta2-1 parse fk.key 1
+bind meta2-2 parse fk.key 2
+bind meta2-3 parse fk.key 3
+bind meta2-4 parse fk.key 4
+bind meta2-5 parse fk.key 5
+bind meta2-6 parse fk.key 6
+bind meta2-7 parse fk.key 7
+bind meta2-8 parse fk.key 8
+bind meta2-9 parse fk.key 9
+bind meta2-0 parse fk.key 0
+bind meta2-; parse fk.key .
+bind meta2-A parse fk.key A;parsekey meta2_character;type ~
+bind meta2-B parse fk.key B;parsekey meta2_character;type ~
+bind meta2-C parse fk.key C;parsekey meta2_character;type ~
+bind meta2-D parse fk.key D;parsekey meta2_character;type ~
+bind meta2-E parse fk.key E;parsekey meta2_character;type ~
+bind meta2-F parse fk.key F;parsekey meta2_character;type ~
+bind meta2-G parse fk.key G;parsekey meta2_character;type ~
+bind meta2-H parse fk.key H;parsekey meta2_character;type ~
+bind meta2-I parse fk.key I;parsekey meta2_character;type ~
+bind meta2-J parse fk.key J;parsekey meta2_character;type ~
+bind meta2-K parse fk.key K;parsekey meta2_character;type ~
+bind meta2-L parse fk.key L;parsekey meta2_character;type ~
+bind meta2-M parse fk.key M;parsekey meta2_character;type ~
+bind meta2-N parse fk.key N;parsekey meta2_character;type ~
+bind meta2-O parse fk.key O;parsekey meta2_character;type ~
+bind meta2-P parse fk.key P;parsekey meta2_character;type ~
+bind meta2-Q parse fk.key Q;parsekey meta2_character;type ~
+bind meta2-R parse fk.key R;parsekey meta2_character;type ~
+bind meta2-S parse fk.key S;parsekey meta2_character;type ~
+bind meta2-T parse fk.key T;parsekey meta2_character;type ~
+bind meta2-U parse fk.key U;parsekey meta2_character;type ~
+bind meta2-V parse fk.key V;parsekey meta2_character;type ~
+bind meta2-W parse fk.key W;parsekey meta2_character;type ~
+bind meta2-X parse fk.key X;parsekey meta2_character;type ~
+bind meta2-Y parse fk.key Y;parsekey meta2_character;type ~
+bind meta2-Z parse fk.key Z;parsekey meta2_character;type ~
+bind meta2-~ nothing
+
+alias fk.key {
+	^assign fk.key $(fk.key)$0
+	if ([$(fk.$(fk.key))]) {
+	    ^bind meta2-~ $(fk.$(fk.key))
+	}{
+	    ^bind meta2-~ type_text <key:$(fk.key)>
+	}
+	parsekey meta2_character
+}
+
+assign fk.A    type_text <Up>
+assign fk.B    type_text <Down>
+assign fk.C    type_text <Right>
+assign fk.D    type_text <Left>
+
+assign fk.1    type_text <Home>
+assign fk.2    type_text <Ins>
+assign fk.3    type_text <Del>
+assign fk.4    type_text <End>
+assign fk.5    type_text <PgUp>
+assign fk.6    type_text <PgDn>
+
+assign fk.2H   type_text <Shift-Home>
+assign fk.2.2  type_text <Shift-Ins> # xterm binds this to PASTE
+assign fk.3.2  type_text <Shift-Del>
+assign fk.2F   type_text <Shift-End>
+assign fk.5.2  type_text <Shift-PgUp>
+assign fk.6.2  type_text <Shift-PgDn>
+
+assign fk.3H   type_text <Alt-Home>
+assign fk.2.3  type_text <Alt-Ins>
+assign fk.3.3  type_text <Alt-Del>
+assign fk.3F   type_text <Alt-End>
+assign fk.5.3  type_text <Alt-PgUp> # wmx steals this one
+assign fk.6.3  type_text <Alt-PgDn> # wmx steals this one, too
+
+assign fk.5H   type_text <Ctrl-Home>
+assign fk.2.5  type_text <Ctrl-Ins>
+assign fk.3.5  type_text <Ctrl-Del>
+assign fk.5F   type_text <Ctrl-End>
+assign fk.5.5  type_text <Ctrl-PgUp>
+assign fk.6.5  type_text <Ctrl-PgDn>
+
+assign fk.P    type_text <F1>
+assign fk.Q    type_text <F2>
+assign fk.R    type_text <F3>
+assign fk.S    type_text <F4>
+assign fk.15   type_text <F5>
+assign fk.17   type_text <F6>
+assign fk.18   type_text <F7>
+assign fk.19   type_text <F8>
+assign fk.20   type_text <F9>
+assign fk.21   type_text <F10>
+assign fk.23   type_text <F11>
+assign fk.24   type_text <F12>
+
+assign fk.2P   type_text <Shift-F1>
+assign fk.2Q   type_text <Shift-F2>
+assign fk.2R   type_text <Shift-F3>
+assign fk.2S   type_text <Shift-F4>
+assign fk.15.2 type_text <Shift-F5>
+assign fk.17.2 type_text <Shift-F6>
+assign fk.18.2 type_text <Shift-F7>
+assign fk.19.2 type_text <Shift-F8>
+assign fk.20.2 type_text <Shift-F9>
+assign fk.21.2 type_text <Shift-F10>
+assign fk.23.2 type_text <Shift-F11>
+assign fk.24.2 type_text <Shift-F12>
+
+assign fk.E    type_text <Numpad-Center>
+
+### Examples:
+# See /help bind for a list of commands to use
+# Use "parse" to execute ircIIscript commands
+
+# Standard keys do the right thing[tm]
+assign fk.A    backward_history
+assign fk.B    forward_history
+assign fk.C    forward_character
+assign fk.D    backward_character
+
+assign fk.1    beginning_of_line
+assign fk.2    toggle_insert_mode
+assign fk.3    delete_character
+assign fk.4    end_of_line
+assign fk.5    scroll_backward
+assign fk.6    scroll_forward
+
+# Control PgUp/PgDn to switch windows
+assign fk.5.5  next_window
+assign fk.6.5  previous_window
+
+# F1 brings help for currently typed command
+assign fk.P   parse ^set help_prompt off;^set help_pager off;help $STRIP($K $L);^set help_prompt on;^set help_pager on

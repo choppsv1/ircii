@@ -1,0 +1,17 @@
+#	$eterna: times,v 1.5 2001/11/29 23:03:10 mrg Exp $
+#
+# prefix messages with the time
+
+# this is our hook into the `columns' script.
+assign ircii.loaded_times 1
+
+on ^msg * echo $Z *$0* $1-
+on ^send_msg * echo $Z -> *$0* $1-
+on ^dcc * echo $Z =$0= $1-
+on ^send_dcc * echo $Z -> =$0= $1-
+on ^public * echo $Z <$0> $2-
+on ^public_other * echo $Z <$0:$1> $2-
+on ^send_public * echo $Z > $1-
+
+# if we did this, we want to refresh it, with ircii.loaded_times=1
+if (ircii.loaded_columns) {load columns}

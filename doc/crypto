@@ -1,0 +1,42 @@
+@(#)$eterna: crypto,v 1.6 2003/07/12 06:46:25 mrg Exp $
+
+ircII crypto implementation notes.
+
+
+the ircII code had traditionally contained a very simple (and thus
+useless) cipher called "SED" for simple encrypted data.  as it is
+quite desirable to talk to others via a secure, private channel,
+ircII now comes with a strong cipher, CAST-128.  the /encrypt
+command has been enhanced to take -cast or -sed switches to choose
+which (the build process will pick a default, cast if it exists,
+otherwise sed).
+
+ircII sends encrypted messages via ctcp messages.  this has several
+features:  it uses an existing ircII (and beyond) protocol to send
+messages that may require special quoting due to full 8 bit data
+output from the cryptography routines.  see the "ctcp" paper in the
+same directory this paper is for details on ctcp quoting.
+
+
+
+cipher notes: cast-128
+
+the cast 128 specification takes 64 bit at a time to encrypt, which
+requires that strings be padded to 64bit boundaries.  to avoid many
+problems with "electronic codebook" mode, this cipher is implemented
+with "cyclic block chaining" mode.  see "applied cryptography" by
+bruce schenier for details on cipher modes.
+
+
+cipher notes: rijndael
+
+this cipher isn't working yet, sorry.
+
+
+future directions:
+
+it's likely that in the future, ircii will use a "CTCP CRYPTO", that
+may contain various informations after this, before the data.
+
+we'll also probably end up using openssl crypto to get all their
+routines and ditching any private copies.

@@ -1,0 +1,23 @@
+# this script helps for 2.9 servers.  it is not loaded by default
+# as it uses /on raw_irc, which is a cpu waster.
+# @(#)$eterna: 2.9script,v 1.4 2001/08/12 15:44:17 mrg Exp $
+
+# takes channel, message
+alias display_server_channel
+{
+        xecho -level SNOTES $0: $1-
+}
+
+on ^server_notice "% &ERRORS *" display_server_channel $1 $2-
+on ^server_notice "% &NOTICES *" display_server_channel $1 $2-
+on ^server_notice "% &KILLS *" display_server_channel $1 $2-
+on ^server_notice "% &CHANNEL *" display_server_channel $1 $2-
+on ^server_notice "% &NUMERICS *" display_server_channel $1 $2-
+on ^server_notice "% &SERVERS *" display_server_channel $1 $2-
+on ^server_notice "% &HASH *" display_server_channel $1 $2-
+on ^server_notice "% &LOCAL *" display_server_channel $1 $2-
+on ^server_notice "% &DEBUG *" display_server_channel $1 $2-
+on ^server_notice "% &SERVICES *" display_server_channel $1 $2-
+
+# stats p
+on ^246 * echo $1 LS:$2 LR:$3 AvgPing:$4 Pref:$5

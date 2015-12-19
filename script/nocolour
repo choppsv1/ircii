@@ -1,0 +1,65 @@
+# $eterna: nocolour,v 1.3 2003/12/08 05:05:59 mrg Exp $
+#
+# nocolour script, found its way here from forcer@mindless.com.
+#
+#
+#      Script: nocolor
+#      Author: lzh@linux.vip.best.com, lzh@Undernet#ircII
+# Description: ircII script to remove mIRC color codes
+#              as specified in http://www.mirc.co.uk/color.txt
+#      add-on: Support weird "^C,#" which isn't in the standard, but
+#              supported by mIRC as well...
+#
+# Loading this script should make it so that mIRC colors codes no longer
+# appear in the client.
+
+#  Some benchmark testing has been performed in designing this script.
+# The use of //, $* instead of $-, code in variables, etc, all helped to
+# make it faster.
+
+#  If you need or want to put a real Control C in [^C],
+#   in emacs you type ^Q then ^C, or
+#   in vi you type ^V followed by ^C, while in insert mode.
+
+@nc.c = []
+if (@nc.c == 2){
+ input "" assign nc.c $$0
+ parsekey quote_character
+ type ^c
+ parsekey send_line
+}
+
+if (@nc.c == 1){
+ @nc.d = [//if (index(0123456789 $mid(${nc.i+1} 1 $*))>-1)]
+ @nc.p = [@nc.i=nc.i+1]
+
+ alias nocolor {
+  @nc.i=0
+  //while ((nc.b=mid($nc.i 1 $*))!=[]){
+   #if Control C
+   //if (nc.b==nc.c){
+    #$nc.d = if next char is digit
+    #$nc.p = increment pointer
+    $nc.d{
+     $nc.p;$nc.d{$nc.p}
+     #if next char is comma
+     //if (mid(${nc.i+1} 1 $*)==[,]){$nc.p;$nc.d{$nc.p;$nc.d{$nc.p}}}
+    }{
+	#added by forcer!
+	#if next char is a comma (e.g. ^C,3)
+	//if (mid(${nc.i+1} 1 $*)==[,]){$nc.p;$nc.d{$nc.p}}
+    }
+   }{
+    #append normal char to output var
+    @nc.o=nc.o##nc.b
+   }
+   $nc.p
+  }
+  @function_return=nc.o
+  @nc.o=[]
+ }
+ on ^window "% *$nc.c*" {//echo $nocolor($1-)}
+}{
+ echo *** nocolor needs a real Control C.
+}
+

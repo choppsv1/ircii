@@ -1,0 +1,10 @@
+core
+irc.core
+config.status
+config.log
+config.cache
+Makefile
+ircbug
+win.tar.gz
+window_traverse.patch
+ID

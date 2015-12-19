@@ -1,0 +1,181 @@
+#	$eterna: listidle,v 1.5 2006/07/26 02:05:45 mrg Exp $
+#
+# tristan+irc@ethereal.net 31jul2000, 2jul2001, 24jul2006
+#
+# bugs/lacking features:
+# - only works correctly on servers that support multiple-nick /whois (as
+#   of this writing, most of EFnet does not) -- this could be automatically
+#   detected and worked around
+# - only works on current channel
+# - /listidle will eat all whois replies until it's done (so among other
+#   things, you can't use /whois while it's running)
+
+# for $notword(), $lformat(), $format(), $sort()
+load functions
+
+if (max_recursions < 100) {
+  # li.fixsend uses recursion, unfortunately
+  set max_recursions 100
+}
+
+if (novice == [ON]) {
+  # we need this for ON to work
+  set novice off
+}
+
+alias li.fixsend {
+  # Input: nick1[!user@host] [nick2[!user@host] ...]
+  # Output: nick1,nick2,...
+  if ([$1]) {
+    @ function_return = [$left($index(! $0) $0),$li.fixsend($1-)]
+  }
+  {
+    @ function_return = [$left($index(! $0) $0)]
+  }
+}
+
+alias listidle {
+  if (left(2 $0) == [-s]) {
+    @ LI.SORTED = 1
+  }
+  whois $li.fixsend($chanusers($C))
+  ^on ^raw_irc "% 311 *" {
+    @ LI.USERHOST[$encode($3)] = [$4@$5]
+  }
+  ^on ^raw_irc "% 319 *" #might want to do something here (channels)
+  ^on ^raw_irc "% 313 *" #might want to do something here (IRCop)
+  ^on ^raw_irc "% 320 *" #might want to do something here ("identified to services")
+  ^on ^raw_irc "% 301 *" {
+    @ LI.AWAY[$encode($3)] = [ (aw)]
+  }
+  ^on ^raw_irc "% 317 *" {
+    @ LI.IDLE[$encode($3)] = [$4]
+    @ LI.SIGNON[$encode($3)] = [$5]
+  }
+  ^on ^raw_irc "% 312 *" {
+    if ([$0]!=[$4]) {
+      @ LI.SERVERS[$encode($4)] = LI.SERVERS[$encode($4)] ## [ $3]
+    }
+  }
+  ^on ^raw_irc "% 318 *" {
+    ^on raw_irc -"% 311 *"
+    ^on raw_irc -"% 319 *"
+    ^on raw_irc -"% 313 *"
+    ^on raw_irc -"% 320 *"
+    ^on raw_irc -"% 301 *"
+    ^on raw_irc -"% 317 *"
+    ^on raw_irc -"% 312 *"
+    ^on raw_irc -"% 318 *"
+    li.rwhois
+  }
+}
+
+alias li.rwhois {
+  @ LI.COUNT = 0
+  foreach li.servers serv {
+    whois $decode($serv) $li.fixsend($li.servers[$serv])
+    @ LI.COUNT = LI.COUNT + 1
+    ^assign -li.servers.$serv
+  }
+  ^assign -serv
+  ^on ^raw_irc "% 311 *" #
+  ^on ^raw_irc "% 319 *" #might want to do something here (channels)
+  ^on ^raw_irc "% 313 *" #might want to do something here (IRCop)
+  ^on ^raw_irc "% 320 *" #might want to do something here ("identified to services")
+  ^on ^raw_irc "% 301 *" {
+    @ LI.AWAY[$encode($3)] = [ (aw)]
+  }
+  ^on ^raw_irc "% 317 *" {
+    @ LI.IDLE[$encode($3)] = [$4]
+    @ LI.SIGNON[$encode($3)] = [$5]
+  }
+  ^on ^raw_irc "% 312 *" #
+  ^on ^raw_irc "% 318 *" {
+    @ LI.COUNT = LI.COUNT - 1
+    if (!LI.COUNT) {
+      ^on raw_irc -"% 311 *"
+      ^on raw_irc -"% 319 *"
+      ^on raw_irc -"% 313 *"
+      ^on raw_irc -"% 320 *"
+      ^on raw_irc -"% 301 *"
+      ^on raw_irc -"% 317 *"
+      ^on raw_irc -"% 312 *"
+      ^on raw_irc -"% 318 *"
+      if (li.sorted) {
+        li.sortedlist
+      } {
+        li.list
+      }
+      ^assign -li.sorted
+    }
+  }
+}
+
+alias li.vaguetdiff {
+  # This function reduces precision of tdiff a bit when tdiff is large.
+  @ li.args = [$*]
+  if ([$[6]word(${#li.args-1} $*)] == [second] && #li.args != 2) {
+    @ li.args = notword(${#li.args-1} $notword($#li.args $*))
+  }
+  if (#li.args > 3) {
+    @ function_return = [$word(0 $li.args) $word(1 $li.args) $word(2 $li.args) $word(3 $li.args)]
+  } {
+    @ function_return = [$word(0 $li.args) $word(1 $li.args)]
+  }
+  ^assign -li.args
+}
+
+alias li.abbrtdiff {
+  # This function abbreviates hours to h, minutes to m, etc.
+  if ([$2]) {
+    @ function_return = [$0$left(1 $1)$li.abbrtdiff($2-)]
+  }
+  {
+    @ function_return = [$0$left(1 $1)]
+  }
+}
+
+alias li.list {
+  echo ***  Nickname        Idle Sign-On      Account
+  foreach li.idle li.nick {
+    echo ***  $lformat(9 $decode($li.nick)) $format(10 $li.abbrtdiff($li.vaguetdiff($tdiff($li.idle[$li.nick])))) $strftime($li.signon[$li.nick] %b %e %H:%M) $li.userhost[$li.nick]$li.away[$li.nick]
+    ^assign -li.idle[$li.nick]
+    ^assign -li.signon[$li.nick]
+    ^assign -li.userhost[$li.nick]
+    ^assign -li.away[$li.nick]
+  }
+  ^assign -li.nick
+}
+
+alias li.sortedlist {
+  @ li.curtime = time()
+  foreach li.idle nick {
+    @ li.since = li.curtime - li.idle[$nick]
+    while (@li.zeroes < 10 - @li.since) {
+      @ li.zeroes = li.zeroes ## [0]
+    }
+    @ li.tosort = [$encode($li.zeroes$li.since).$nick ] ## li.tosort
+    ^assign -li.zeroes
+  }
+  @ li.sorted = sort($li.tosort)
+  @ li.count = 0
+  echo ***  Nickname        Idle Sign-On      Account
+  while (word($li.count $li.sorted)) {
+    @ li.code = word($li.count $li.sorted)
+    @ li.nick = mid(21 999 $li.code)
+    echo ***  $lformat(9 $decode($li.nick)) $format(10 $li.abbrtdiff($li.vaguetdiff($tdiff(${li.curtime - decode($left(20 $li.code))})))) $strftime($li.signon[$li.nick] %b %e %H:%M) $li.userhost[$li.nick]$li.away[$li.nick]
+    ^assign -li.idle[$li.nick]
+    ^assign -li.signon[$li.nick]
+    ^assign -li.userhost[$li.nick]
+    ^assign -li.away[$li.nick]
+    @ li.count = li.count + 1
+  }
+  ^assign -li.sorted
+  ^assign -li.tosort
+  ^assign -li.curtime
+  ^assign -li.count
+  ^assign -li.code
+  ^assign -li.since
+  ^assign -li.nick
+  ^assign -li.diff
+}

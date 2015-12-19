@@ -1,0 +1,11 @@
+core
+irc.core
+sig.inc
+Makefile
+irc
+count
+count.c
+ircio
+wserv
+ircflush
+wterm.c

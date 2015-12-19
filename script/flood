@@ -1,0 +1,8 @@
+#	$eterna: flood,v 1.2 2001/08/12 15:57:11 mrg Exp $
+#
+# Activate flood protection
+on ^flood *
+on flood ^irciihelp
+on flood ^nickserv
+on flood ^noteserv
+on flood ^msgserv

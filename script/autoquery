@@ -1,0 +1,129 @@
+# $eterna: autoquery,v 1.2 2014/03/14 20:59:19 mrg Exp $
+#
+# mirc-like automatic query windows for ircii
+# Time-stamp: <01/01/17 18:06:40 friedel>
+# by friedel <friedel@nomaden.org>
+
+# WARNING: I assume you have the "screen" script, which comes with
+# vanilla ircii loaded before this. It would be useful :)
+
+# WARNING2: This script *replaces* ALL /on msg and /on send_msg hooks.
+
+# I use "aqw." as in "Auto Query Windows" as a prefix.
+
+# One slight modification of a wellknown alias:
+alias talkto {
+	window new
+	window lev non log on hide_others name $0
+	query $0
+}
+
+#alias talkto {
+#	window new
+#	window lev non log on name $0
+#	query $0
+#}
+
+# This one is from the bigcheese script
+alias reply talkto $* $,
+
+# Stolen from "columns":
+# columnate some output
+alias aqw.format {
+        assign aqw.IRCII.word $1
+        if ( @aqw.IRCII.word < [$0] )
+                { assign function_return $([-$0]1) }
+                { assign function_return $1 }
+}
+
+alias aqw.encode {
+	^assign aqw.nick $(encode($0))
+	@ function_return = aqw.nick
+}
+
+# A field to remember wether we have a query: aqw.nicks
+alias aqw.storenick {
+	^assign aqw.nicks.$(aqw.encode($0)) true
+}
+
+alias aqw.retrievenick {
+	^assign function_return $(aqw.nicks[${aqw.encode($0)}])
+}
+
+alias aqw.delnick {
+	^assign -aqw.nicks[${aqw.encode($0)}]
+}
+#-----
+
+alias aqw.newchat {
+	aqw.storenick $0
+	talkto $0
+	on ^window_kill $0 aqw.delnick $0
+}
+
+# DAMMIT! Can anybody explain, why i have to remove the "." in aqw.nicks.$0 ?
+# Answer: That is the stupid ircii Array Syntax, as explained in
+# http://www.irchelp.org/irchelp/ircii/commands/expressions
+alias aqw.chatexists {
+	@ exists = aqw.retrievenick($0)
+	if (exists==[true]) {
+		^assign function_return 1
+	} {
+		^assign function_return 0
+	}
+}
+
+alias aqw.lock {
+	^assign aqw.locked 1
+}
+
+alias aqw.unlock {
+	^assign aqw.locked 0
+}
+
+alias aqw.msg {
+	^assign aqw.who *$0*
+	^assign aqw.who.len ${@aqw.who + 3}
+	xecho -window $0 -level msg ${aqw.format($aqw.who.len $aqw.who)} $1-
+}
+
+alias aqw.sendmsg {
+	xecho -window $0 -level msg => *$0* $1-
+}
+
+# This function is bound to on msg
+alias aqw.check.from {
+	if (!aqw.locked) {
+		aqw.lock
+		if (! aqw.chatexists($0)) {
+			aqw.newchat $0 $1-
+			aqw.msg $0 $1-
+		} {
+			aqw.msg $0 $1-
+		}
+		aqw.unlock
+	} {
+		aqw.msg $0 $1-
+	}
+}
+
+# This function is bound to on send_msg
+alias aqw.check.to {
+	if (!aqw.locked) {
+		aqw.lock
+		if (! aqw.chatexists($0)) {
+			aqw.newchat $0
+			aqw.sendmsg $0 $1-
+		} {
+			aqw.sendmsg $0 $1-
+		}
+		aqw.unlock
+	} {
+		aqw.sendmsg $0 $1-
+	}
+}
+
+on ^msg -
+on ^send_msg -
+on ^msg * aqw.check.from $0 $1-
+on ^send_msg * aqw.check.to $0 $1-

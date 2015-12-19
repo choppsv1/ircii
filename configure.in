@@ -1,0 +1,925 @@
+# configure.in for ircii
+dnl
+dnl Copyright (c) 1993-2014 Matthew R. Green.
+dnl All rights reserved.
+dnl
+dnl Redistribution and use in source and binary forms, with or without
+dnl modification, are permitted provided that the following conditions
+dnl are met:
+dnl 1. Redistributions of source code must retain the above copyright
+dnl    notice, this list of conditions and the following disclaimer.
+dnl 2. Redistributions in binary form must reproduce the above copyright
+dnl    notice, this list of conditions and the following disclaimer in the
+dnl    documentation and/or other materials provided with the distribution.
+dnl 3. The name of the author may not be used to endorse or promote products
+dnl    derived from this software without specific prior written permission.
+dnl
+dnl THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+dnl IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+dnl OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+dnl IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+dnl INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+dnl BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+dnl LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+dnl AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+dnl OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+dnl OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+dnl SUCH DAMAGE.
+dnl
+dnl certain portions have other attributions, see below.
+dnl
+dnl thanks to the screen 3.3 configure.in for giving me examples to
+dnl work from and steal ;)
+dnl
+dnl @(#)$eterna: configure.in,v 1.211 2014/11/26 21:46:24 mrg Exp $
+
+AC_PREREQ([2.69])
+AC_REVISION($Revision: 1.211 $)dnl
+AC_INIT(${srcdir}/source/irc.c)
+AC_CONFIG_HEADER(defs.h:include/defs.h.in)
+
+# So many systems seem to need this that it is better do it here automatically.
+if test "x$prefix" != xNONE; then
+  if test -d "$prefix/lib"; then
+    LIBS="-L${prefix}/lib $LIBS"
+  fi
+else
+  if test -d "$ac_default_prefix/lib"; then
+    LIBS="-L${ac_default_prefix}/lib $LIBS"
+  fi
+fi
+
+dnl
+dnl grok the version number - from source/irc.c
+dnl
+
+VERSION=`sed -n -e 's/"[[^"]]*$//' -e '/#define[ 	]*IRCII_VERSION[ 	]*"/s///p' -e '/#define IRCII_VERSION/q' < ${srcdir}/source/irc.c` 
+echo this is ircii version $VERSION
+echo
+AC_SUBST(VERSION)
+
+CATEGORIES='build change-request doc pending runtime'
+AC_SUBST(CATEGORIES)
+
+dnl so that the generated configure has an id.
+echo '$eterna: configure.in,v 1.211 2014/11/26 21:46:24 mrg Exp $' > /dev/null
+
+dnl
+dnl initial stuff
+dnl
+
+AC_PROG_CC
+AC_PROG_CPP
+
+dnl
+dnl setup variables
+dnl
+srcdir=`(cd $srcdir; pwd)`
+AC_SUBST(srcdir)
+objdir=`pwd`
+AC_SUBST(objdir)
+
+dnl AC_AIX is broken.  blah.
+
+AC_PROG_GCC_TRADITIONAL
+if test $ac_cv_prog_gcc = yes; then
+  CFLAGS="-pipe $CFLAGS"
+fi
+
+AC_MSG_CHECKING(for qnx)
+case "`uname -s`" in
+dnl bleck - wish i could ditch this qnx test, but we need to bump the stack
+  QNX*)
+    AC_MSG_RESULT(yes)
+    if test -z "$GCC"; then
+      LDFLAGS="-N256k -M"
+      CFLAGS="-w4 -Otax -zc -Wc,-fr= -Wc,-wcd=121"
+    fi
+    ;;
+  *)
+    AC_MSG_RESULT(no)
+esac
+AC_MSG_CHECKING(for solaris)
+if /bin/sun 2> /dev/null
+then
+  uname=`uname -r`
+  case "$uname" in
+    5.*)
+      AC_MSG_RESULT(yes)
+      svr4=1
+      ;;
+  esac
+else
+  AC_MSG_RESULT(no)
+  AC_MSG_CHECKING(for SVR4)
+  AC_EGREP_CPP(yes,
+[#if defined(SVR4) || defined(__svr4__) || defined(__SVR4)
+  yes
+#endif
+],AC_MSG_RESULT(yes)
+  svr4=1)
+fi
+
+if test -n "$svr4"
+then
+  LIBS="-L/usr/ccs/lib -lnsl -lsocket $LIBS"
+else
+  AC_MSG_RESULT(no)
+fi
+
+dnl
+dnl linux ncurses
+dnl
+case "`uname -s`" in
+  Linux*)
+    if test -d /usr/include/ncurses; then
+      CFLAGS="-I/usr/include/ncurses $CFLAGS"
+    fi
+    ;;
+esac
+
+AC_CHECK_HEADERS(sys/un.h sys/select.h sys/fcntl.h sys/ioctl.h sys/file.h sys/time.h sys/uio.h)dnl sys/ ones
+AC_CHECK_HEADERS(fcntl.h memory.h netdb.h limits.h crypt.h)dnl non sys/ ones
+AC_CHECK_HEADERS(process.h termcap.h iconv.h)dnl others
+
+AC_CHECK_FUNC(fchmod,, AC_DEFINE([NEED_FCHMOD], 1, [define this if you need fchmod()]))
+AC_CHECK_FUNC(getcwd,, AC_DEFINE([NEED_GETCWD], 1, [define this if you need getcwd()]))
+AC_CHECK_FUNC(strerror,, AC_DEFINE([NEED_STRERROR], 1, [define this if you need strerror(3)]))
+
+AC_CHECK_FUNCS(\
+	getpgid getsid memmove scandir setsid strftime writev \
+	vasprintf snprintf vsnprintf fputc fwrite setenv unsetenv \
+	gethostbyname2 inet_pton inet_ntop tzset waitpid iconv_open)
+
+dnl
+dnl look for get*info in libmedia
+dnl
+
+AC_CHECK_FUNC(getaddrinfo, AC_DEFINE([HAVE_GETADDRINFO], 1, [define this if you have getaddrinfo(3)]),
+  AC_CHECK_LIB(media, getaddrinfo, LIBS="$LIBS -lmedia"))
+AC_CHECK_FUNC(getnameinfo, AC_DEFINE([HAVE_GETNAMEINFO], 1, [define this if you have getnameinfo(3)]),)
+
+AC_HEADER_TIME
+
+AC_TYPE_MODE_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_UID_T
+AC_CHECK_TYPES([ssize_t], [AC_DEFINE([HAVE_SSIZE_T], 1, [define this if you have ssize_t type])])
+
+AC_MSG_TRY_COMPILE(for sockaddr_in.sin_len, ircii_cv_HAVE_SOCKADDR_SA_LEN, [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h> ],
+  [ struct sockaddr_in sin;
+    int X = sin.sin_len ],
+  [AC_DEFINE([HAVE_SOCKADDR_SA_LEN], 1, [define this if your struct sockaddr has a sa_len member])])
+
+AC_MSG_TRY_COMPILE(for struct addrinfo, ircii_cv_HAVE_ADDRINFO, [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h> ],
+  [ struct addrinfo X ],
+  [AC_DEFINE([HAVE_ADDRINFO], 1, [define this if you have struct addrinfo])])
+
+AC_MSG_TRY_COMPILE(for socklen_t, ircii_cv_HAVE_SOCKLEN_T, [
+#include <sys/types.h>
+#include <sys/socket.h> ], [ socklen_t X ], [AC_DEFINE([HAVE_SOCKLEN_T], 1, [define this if you have socklen_t])])
+
+dnl
+dnl checking for select()
+dnl
+
+olibs="$LIBS"
+AC_CHECK_FUNC(select, ,
+  AC_CHECK_LIB(socket, select, LIBS="$LIBS -lsocket",
+    AC_CHECK_LIB(nsl, select, LIBS="$LIBS -lnsl",
+      AC_CHECK_LIB(inet, select, LIBS="$LIBS -linet",
+        AC_CHECK_LIB(cposix, select, LIBS="$LIBS -lcposix",
+          AC_CHECK_LIB(net, select, LIBS="$LIBS -lnet",
+            AC_MSG_WARN(i can not find select.  you might need to help me)))))))
+
+dnl
+dnl termcap or curses
+dnl if termcap, check for tputs declaration
+dnl
+if test x$aix = x1
+then
+  LIBS="$LIBS -lcurses"
+  include_curses_h=1
+else
+  olibs="$LIBS"
+  AC_CHECK_LIB(termcap, tgetent, LIBS="-ltermcap $olibs",
+    AC_CHECK_LIB(tinfo, tgetent, LIBS="-ltinfo $olibs",
+      AC_CHECK_LIB(termlib, tgetent, LIBS="$olibs -ltermlib",
+        AC_CHECK_LIB(curses, tgetent, LIBS="$olibs -lcurses",
+          AC_CHECK_LIB(xtermcap, tgetent, LIBS="$olibs -lxtermcap",
+            AC_CHECK_LIB(ncurses, tgetent, LIBS="$olibs -lncurses",
+              AC_MSG_WARN(i can not find tgetent.  you might need to help me)))))))
+  AC_MSG_CHECKING(for tputs in curses.h)
+  AC_EGREP_CPP([tputs( |	|\()],[#include <curses.h>
+], include_curses_h=1
+   AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
+fi
+
+if test -n "$include_curses_h"
+then
+  AC_DEFINE([INCLUDE_CURSES_H], 1, [define this if you have crypt(3)])
+fi
+
+
+dnl
+dnl check the type of iconv(3)'s 2nd argument
+dnl
+
+AC_MSG_CHECKING(for const iconv 2nd argument)
+AC_EGREP_HEADER([\\<iconv\\>.*\\(.*const], iconv.h,
+  AC_MSG_RESULT(yes)
+  AC_DEFINE([ICONV_CONST_ARG2], 1,
+    [define this if your iconv(3)'s 2nd argument is const]),
+  AC_MSG_RESULT(no))
+
+
+dnl
+dnl libraries
+dnl
+
+dnl work out UNIX mail dir..
+
+AC_MSG_CHECKING(for unix mail directory)
+
+for foo in /var/spool/mail /usr/spool/mail /var/mail /usr/mail
+do
+  if test -d $foo; then
+    mdir=$foo
+    break
+  fi
+done
+
+if test -n "$mdir"; then
+  UNIX_MAIL=\"$mdir\"
+  AC_MSG_RESULT($mdir)
+  AC_DEFINE_UNQUOTED([UNIX_MAIL], ["$mdir"], [define this to the location of normal unix mail])
+else
+  AC_MSG_RESULT(none)
+fi
+
+
+if test -z "$CFLAGS"; then CFLAGS=-O ; fi
+if test -z "$LDFLAGS"; then LDFLAGS= ; fi
+RM="rm -f"
+LN="ln -s"
+
+if test ! -n "$bindir";
+then
+	bindir=\${exec_prefix}/bin
+fi
+AC_SUBST(bindir)
+
+if test ! -n "$IRCLIB";
+then
+	IRCLIB=\${datarootdir}/irc
+fi
+AC_SUBST(IRCLIB)
+
+if test "x$libexecdir" = "x"; then
+  if test "x$exec_prefix" = "xNONE"; then
+    if test "x$prefix" = "xNONE"; then
+      libexecdir="$ac_default_prefix/libexec"
+    else
+      libexecdir="$prefix/libexec"
+    fi
+  else
+    libexecdir="$exec_prefix/libexec"
+  fi
+fi
+AC_SUBST(libexecdir)
+
+AC_MSG_CHECKING(for ElectricFence library)
+AC_ARG_WITH(efence,
+[  --with-efence[=PATH]           Compile with the ElectricFence debugging library.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    ;;		
+  *)
+    AC_MSG_RESULT(yes)
+    if test "x$withval" = xyes; then
+      withval="-lefence"
+    else
+      if test -d "$withval"; then
+        if test -d "$withval/lib"; then
+	  withval="-L$withval/lib -lefence"
+	else
+	  withval="-L$withval -lefence"
+	fi
+      fi
+    fi
+    LIBS="$withval $LIBS"
+    ;;
+  esac
+], [
+  AC_MSG_RESULT(no)
+])
+
+AC_MSG_CHECKING(for OpenSSL library)
+checkopenssl=no
+ssl_path=
+AC_ARG_WITH(openssl,
+[  --with-openssl[=PATH]           Compile with OpenSSL.],
+[ case "$withval" in
+  no)
+    ;;		
+  *)
+    if test "x$withval" != "xyes"; then
+      ssl_path="$withval"
+    fi
+    checkopenssl=yes
+    ;;
+  esac
+], [
+  checkopenssl=maybe
+])
+
+ssl_libs=""
+ssl_cflags=""
+if test "x$checkopenssl" != xno; then
+  if test "x$ssl_path" = x; then
+    ssl_libs="-lcrypto -lssl"
+  else
+    if test -d "$ssl_path"; then
+      if test -d "$ssl_path/lib"; then
+        ssl_libs="-L$ssl_path/lib -lcrypto -lssl"
+	ssl_cflags="-I$ssl_path/include"
+      else
+        ssl_libs="-L$ssl_path -lcrypto -lssl"
+	ssl_cflags="-I$ssl_path/../include"
+      fi
+    fi
+  fi
+fi
+
+if test "x$ssl_libs" != x; then
+  AC_MSG_RESULT(yes)
+  LIBS="$LIBS $ssl_libs"
+  CFLAGS="$CFLAGS $ssl_cflags"
+  AC_DEFINE([USE_OPENSSL], 1, [define this if you want to use OpenSSL])
+else
+  AC_MSG_RESULT(no)
+fi
+
+AC_MSG_CHECKING(for debug flags)
+AC_ARG_WITH(debugging,
+[  --with-debugging[=flags]       Build with debugging support.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    DEBUGFLAGS=
+    ;;		
+  *)
+    AC_MSG_RESULT(yes)
+    if test "x$withval" = xyes; then
+      withval=-g
+    fi
+    DEBUGFLAGS="$withval"
+    for flag in $CFLAGS; do
+      case "$CFLAGS" in
+        -DDEBUG|-DDEBUG=*)
+	  found=1
+	  break
+	  ;;
+        *)
+          found=0
+	  ;;
+      esac
+    done
+    if test $found -eq 0; then
+      CFLAGS="$CFLAGS -DDEBUG"
+    fi
+    ;;
+  esac ],
+  AC_MSG_RESULT(no)
+)
+AC_SUBST(DEBUGFLAGS)
+
+AC_MSG_CHECKING(for warning flags)
+AC_ARG_WITH(warnings,
+[  --with-warnings[=flags]        Build with GCC warnings.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    WARNINGFLAGS=
+    ;;		
+  *)
+    AC_MSG_RESULT(yes)
+    if test "x$withval" = xyes; then
+      withval='-Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wmissing-declarations -Wnested-externs -Wpointer-arith -Wformat'
+    fi
+    WARNINGFLAGS="$withval"
+    ;;
+  esac ],
+  AC_MSG_RESULT(no)
+)
+AC_SUBST(WARNINGFLAGS)
+
+AC_MSG_CHECKING(for warnings as errors)
+AC_ARG_WITH(warning-errors,
+[  --with-warning-errors[=flags]  Turn warnings into errors.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    ERRORFLAGS=
+    ;;		
+  *)
+    AC_MSG_RESULT(yes)
+    if test "x$withval" = xyes; then
+      withval='-Werror'
+    fi
+    ERRORFLAGS="$withval"
+    ;;
+  esac ],
+  AC_MSG_RESULT(no)
+)
+AC_SUBST(ERRORFLAGS)
+
+AC_MSG_CHECKING(for emacs meta keys)
+AC_ARG_WITH(emacs-meta-keys,
+[  --with-emacs-meta-keys         Enable Emacs meta key support.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    ;;		
+  *)
+    AC_MSG_RESULT(yes)
+    AC_DEFINE([WITH_EMACS_META_KEYS], 1, [define this if you want Emacs metakey support])
+    ;;
+  esac ],
+  AC_MSG_RESULT(no)
+)
+
+AC_MSG_CHECKING(paranoia status)
+AC_ARG_WITH(paranoid,
+[  --with-paranoid                Sets the compile-time paranoid flag.],
+[ AC_MSG_RESULT(yes)
+  AC_DEFINE_UNQUOTED([PARANOID], 1, [define this if you want to be paranoid]) ],
+  AC_MSG_RESULT(none)
+)
+
+AC_MSG_CHECKING(for /dev/urandom)
+if test -c /dev/urandom; then
+  AC_MSG_RESULT(yes)
+  have_dev_random=1
+  dev_random_path="/dev/urandom"
+else
+  AC_MSG_RESULT(no)
+  AC_MSG_CHECKING(for /dev/random)
+  if test -c /dev/random; then
+    AC_MSG_RESULT(yes)
+    have_dev_random=1
+    dev_random_path="/dev/random"
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi
+
+if test -n "$have_dev_random"
+then
+  AC_DEFINE([HAVE_DEV_RANDOM], 1, [Define this if you have /dev/random])
+  AC_DEFINE_UNQUOTED([DEV_RANDOM_PATH], ["$dev_random_path"], [Define this to the random device to use])
+fi
+
+AC_MSG_CHECKING(for default server)
+AC_ARG_WITH(default-server,
+[  --with-default-server=SERVER[:PORT]   Connect to SERVER by default.],
+[ if test "$withval"; then
+    AC_MSG_RESULT($withval)
+    AC_DEFINE_UNQUOTED([DEFAULT_SERVER], ["$withval"], [define this to be the name[:port] of the default server])
+  else
+    AC_MSG_RESULT(none)
+  fi ],
+  AC_MSG_RESULT(none)
+)
+
+dnl
+dnl check for -lcrypt
+dnl
+
+AC_CHECK_LIB(c, crypt,
+  [have_crypt=1],
+  AC_CHECK_LIB(crypt, crypt,
+    [have_crypt=1
+     LIBS="$LIBS -lcrypt"],
+    AC_CHECK_LIB(des, des,
+      [have_crypt=1
+       LIBS="$LIBS -ldes"])))
+
+if test -n "$have_crypt"
+then
+  AC_DEFINE([HAVE_CRYPT], 1, [define this if you have crypt(3)])
+fi
+
+dnl
+dnl check for SOCKS
+dnl
+
+AC_MSG_CHECKING(whether to support SOCKS)
+AC_ARG_WITH(socks,
+[  --with-socks                   Compile with SOCKS firewall traversal support.],
+[ case "$withval" in
+  no)
+    AC_MSG_RESULT(no)
+    ;;
+  yes)
+    AC_MSG_RESULT(yes)
+    AC_CHECK_LIB(socks5, SOCKSconnect, [
+	    socks=5
+	    LIBS="$LIBS -lsocks5"], [
+	AC_CHECK_LIB(socks, Rconnect, [
+	    socks=4
+	    LIBS="$LIBS -lsocks"], [
+		AC_MSG_ERROR(Could not find socks library.  You must first install socks.) ] ) ] )
+    ;;
+  esac ],
+  AC_MSG_RESULT(no)
+)
+
+if test "x$socks" = "x"; then
+	AC_MSG_CHECKING(whether to support SOCKS5)
+	AC_ARG_WITH(socks5,
+	[  --with-socks5[=PATH]           Compile with SOCKS5 firewall traversal support.],
+	[ case "$withval" in
+	  no)
+	    AC_MSG_RESULT(no)
+	    ;;
+	  *)
+	    AC_MSG_RESULT(yes)
+	    socks=5
+	    if test "x$withval" = "xyes"; then
+	      withval="-lsocks5"
+	    else
+	      if test -d "$withval"; then
+		if test -d "$withval/include"; then
+		  CFLAGS="$CFLAGS -I$withval/include"
+		else
+		  CFLAGS="$CFLAGS -I$withval"
+		fi
+	        if test -d "$withval/lib"; then
+		  withval="-L$withval/lib -lsocks5"
+		else
+		  withval="-L$withval -lsocks5"
+		fi
+	      fi
+	    fi
+	    LIBS="$withval $LIBS"
+	    # If Socks was compiled with Kerberos support, we will need
+	    # to link against kerberos libraries.  Temporarily append
+	    # to LIBS.  This is harmless if there is no kerberos support.
+	    TMPLIBS="$LIBS"
+	    LIBS="$LIBS $KERBEROS_LIBS"
+	    AC_TRY_LINK([],
+	                [ SOCKSconnect(); ],
+			[],
+			[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks5.) ])
+	    LIBS="$TMPLIBS"
+	    ;;
+	  esac ],
+	  AC_MSG_RESULT(no)
+	)
+fi
+
+if test "x$socks" = "x"; then
+	AC_MSG_CHECKING(whether to support SOCKS4)
+	AC_ARG_WITH(socks4,
+	[  --with-socks4[=PATH]           Compile with SOCKS4 firewall traversal support.],
+	[ case "$withval" in
+	  no)
+	    AC_MSG_RESULT(no)
+	    ;;
+	  *)
+	    AC_MSG_RESULT(yes)
+	    socks=4
+	    if test "x$withval" = "xyes"; then
+	      withval="-lsocks"
+	    else
+	      if test -d "$withval"; then
+	        withval="-L$withval -lsocks"
+	      fi
+	    fi
+	    LIBS="$withval $LIBS"
+	    AC_TRY_LINK([],
+	                [ Rconnect(); ],
+			[],
+			[ AC_MSG_ERROR(Could not find the $withval library.  You must first install socks.) ])
+	    ;;
+	  esac ],
+	  AC_MSG_RESULT(no)
+	)
+fi
+
+if test -n "$socks"; then
+  AC_DEFINE([SOCKS], 1, [Define this if compiling with SOCKS (the firewall traversal library)])
+fi
+
+if test "x$socks" = "x4"; then
+    AC_DEFINE([SOCKS4], 1, [Define this if using the SOCKS version 4 library])
+fi
+
+if test "x$socks" = "x5"; then
+    AC_DEFINE([SOCKS5], 1, [Define this if using the SOCKS version 5 library])
+fi
+
+AC_MSG_CHECKING(for non-blocking)
+AC_ARG_WITH(non-blocking,
+[  --with-non-blocking=[TYPE]     Use TYPE non-blocking, yes or no],
+[
+  case "$withval" in
+  no|none)
+    AC_MSG_RESULT(no)
+    ;;
+  *)
+    if test -z "$socks"; then
+      withval=no
+      AC_MSG_RESULT(no, disabled due to SOCKS support)
+    else
+      AC_MSG_RESULT(yes)
+      non_blocking_connects=1
+    fi
+    ;;
+  esac ],
+[ 
+  AC_MSG_RESULT(yes)
+  non_blocking_connects=1
+])
+
+if test -n "$non_blocking_connects"
+then
+  AC_DEFINE([NON_BLOCKING_CONNECTS], 1, [define this to use non-blocking connects. Precluded by SOCKS])
+fi
+
+have_rfc2553_netdb=no
+if test $ac_cv_func_getaddrinfo = yes -a ! -n "$socks"; then
+	AC_MSG_TRY_COMPILE(for AI_NUMERICHOST,
+	    ircii_cv_have_ai_numerichost, [
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h> ],
+	    [ int X = AI_NUMERICHOST ], [ have_rfc2553_netdb=yes ])
+fi
+
+AC_MSG_CHECKING([whether to enable ipv6])
+if test "x$socks" = "x4" -o "x$socks" = "x5"; then
+AC_MSG_RESULT(no, bacause you enabled SOCKS$socks support)
+else
+  AC_ARG_ENABLE(ipv6,
+[  --enable-ipv6                  Enable ipv6 (with ipv4) support
+  --disable-ipv6                 Disable ipv6 support],
+[ case "$enableval" in
+  no)
+       AC_MSG_RESULT(no)
+       ipv6=no
+       ;;
+  *)   AC_MSG_RESULT(yes)
+       ipv6=yes
+       ;;
+  esac ])
+
+  AC_MSG_TRY_COMPILE(for AF_INET6, ircii_cv_HAVE_AF_INET6, [
+#include <sys/types.h>
+#include <sys/socket.h> ],
+    [ if (socket(AF_INET6, SOCK_STREAM, 0) < 0)
+        exit(1); ],
+    [ipv6=yes])
+
+if test -n "$ipv6"
+then
+  AC_DEFINE([INET6], 1, [define this if you have IPv6 API support])
+fi
+
+fi # socks = x[45]
+
+AC_MSG_CHECKING(for working getaddrinfo())
+if test $have_rfc2553_netdb = yes; then
+	AC_DEFINE([HAVE_RFC2553_NETDB], 1, [define this if you have RFC 2553 <netdb.h> (IPv6)])
+  AC_TRY_RUN([
+#include <sys/types.h>
+#include <netdb.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+main()
+{
+  int passive, gaierr, inet4 = 0, inet6 = 0;
+  struct addrinfo hints, *ai, *aitop;
+  char straddr[INET6_ADDRSTRLEN], strport[16];
+
+  for (passive = 0; passive <= 1; passive++) {
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = passive ? AI_PASSIVE : 0;
+    hints.ai_socktype = SOCK_STREAM;
+    if ((gaierr = getaddrinfo(NULL, "54321", &hints, &aitop)) != 0) {
+      (void)gai_strerror(gaierr);
+      goto bad;
+    }
+    for (ai = aitop; ai; ai = ai->ai_next) {
+      if (ai->ai_addr == NULL ||
+          ai->ai_addrlen == 0 ||
+          getnameinfo(ai->ai_addr, ai->ai_addrlen,
+                      straddr, sizeof(straddr), strport, sizeof(strport),
+                      NI_NUMERICHOST|NI_NUMERICSERV) != 0) {
+        goto bad;
+      }
+      switch (ai->ai_family) {
+      case AF_INET:
+        if (strcmp(strport, "54321") != 0) {
+          goto bad;
+        }
+        if (passive) {
+          if (strcmp(straddr, "0.0.0.0") != 0) {
+            goto bad;
+          }
+        } else {
+          if (strcmp(straddr, "127.0.0.1") != 0) {
+            goto bad;
+          }
+        }
+        inet4++;
+        break;
+      case AF_INET6:
+        if (strcmp(strport, "54321") != 0) {
+          goto bad;
+        }
+        if (passive) {
+          if (strcmp(straddr, "::") != 0) {
+            goto bad;
+          }
+        } else {
+          if (strcmp(straddr, "::1") != 0) {
+            goto bad;
+          }
+        }
+        inet6++;
+        break;
+      case AF_UNSPEC:
+        goto bad;
+        break;
+      default:
+        /* another family support? */
+        break;
+      }
+    }
+  }
+
+  if (inet4 != 0 && inet4 != 2)
+    goto bad;
+  if (inet6 != 0 && inet6 != 2)
+    goto bad;
+
+  if (aitop)
+    freeaddrinfo(aitop);
+  exit(0);
+
+ bad:
+  if (aitop)
+    freeaddrinfo(aitop);
+  exit(1);
+}],
+  AC_MSG_RESULT(good)
+  buggygetaddrinfo=no,
+  AC_MSG_RESULT(buggy)
+  buggygetaddrinfo=yes,
+  AC_MSG_RESULT(buggy)
+  buggygetaddrinfo=yes)
+
+  if test "x$buggygetaddrinfo" = "xyes"; then
+	echo 'Using local version of getaddrinfo()'
+	ac_cv_func_getaddrinfo=no
+  fi
+
+else
+  if test $ac_cv_func_getaddrinfo = yes; then
+	AC_MSG_RESULT(no - using local version)
+  else
+	AC_MSG_RESULT(using local version)
+  fi
+  ac_cv_func_getaddrinfo=no
+fi # have_rfc2553_netdb = yes
+
+if test -n "$hpux"
+then
+	# HP-UX's pax is broken
+	AC_CHECK_PROGS(COPY_DIRECTORY, tar cpio)
+else
+	AC_CHECK_PROGS(COPY_DIRECTORY, pax tar cpio)
+fi
+if test "x$COPY_DIRECTORY" = "xpax";
+then
+    INSTALL_HELP_CMD='cd $(topdir)/help; pax -r -w -s ";.*/CVS$$;;" -s ";.*/\.CVS$$;;" -s ";.*/CVS/.*;;" -s ";.*/\.CVS/.*;;" . $(HELP_DIR)'
+else
+    if test "x$COPY_DIRECTORY" = "xtar";
+    then
+	INSTALL_HELP_CMD='cd $(topdir)/help; tar -cf - . | ( cd $(HELP_DIR); tar -xf - )'
+    else
+	if test "x$COPY_DIRECTORY" = "xcpio";
+	then
+	    INSTALL_HELP_CMD='cd $(topdir)/help; find . -print | cpio -pdu $(HELP_DIR)'
+	else
+	    INSTALL_HELP_CMD="@echo \"I couldn't figure out a way to install the help files.\""
+	fi
+    fi
+fi
+AC_SUBST(INSTALL_HELP_CMD)
+
+AC_CHECK_PROGS(ZCAT, gzcat zcat gunzip gzip uncompress uncompress)
+case "x$ZCAT" in
+  xgzcat)
+    ZSUFFIX=".gz"
+    ZARGS=
+    ;;
+  xzcat)
+    ZSUFFIX=".Z"
+    ZARGS=
+    ;;
+  xgunzip)
+    ZSUFFIX=".gz"
+    ZARGS="-c"
+    ;;
+  xgzip)
+    ZSUFFIX=".gz"
+    ZARGS="-dc"
+    ;;
+  xuncompress)
+    ZSUFFIX=".Z"
+    ZARGS="-c"
+    ;;
+  xcompress)
+    ZSUFFIX=".Z"
+    ZARGS="-dc"
+    ;;
+esac
+AC_DEFINE_UNQUOTED([ZCAT],["$ZCAT"], [define this to the ZCAT program of your choice])
+AC_DEFINE_UNQUOTED([ZSUFFIX],["$ZSUFFIX"], [define these to the ZCAT suffer of your choice(.gz)])
+if test x"$ZARGS" != x; then
+  AC_DEFINE_UNQUOTED([ZARGS],["$ZARGS"], [define these to the ZCAT args of your choice])
+fi
+
+dnl
+dnl check if we need snprintf.c, getaddrinfo.c or getnameinfo.c
+dnl
+EXTRA_OBJECTS=
+EXTRA_SOURCES=
+EXTRA_IRCIO_OBJECTS=
+EXTRA_IRCIO_SOURCES=
+if test x$ac_cv_func_snprintf != xyes || test x$ac_cv_func_vsnprintf != xyes
+then
+  EXTRA_OBJECTS="$EXTRA_OBJECTS snprintf.o"
+  EXTRA_SOURCES="$EXTRA_SOURCES snprintf.c"
+  EXTRA_IRCIO_OBJECTS="$EXTRA_IRCIO_OBJECTS snprintf.o"
+  EXTRA_IRCIO_SOURCES="$EXTRA_IRCIO_SOURCES snprintf.c"
+fi
+if test x$ac_cv_func_getaddrinfo != xyes
+then
+  EXTRA_OBJECTS="$EXTRA_OBJECTS getaddrinfo.o"
+  EXTRA_SOURCES="$EXTRA_SOURCES getaddrinfo.c"
+  EXTRA_IRCIO_OBJECTS="$EXTRA_IRCIO_OBJECTS getaddrinfo.o"
+  EXTRA_IRCIO_SOURCES="$EXTRA_IRCIO_SOURCES getaddrinfo.c"
+  if test x$ac_cv_func_inet_pton != xyes
+  then
+    EXTRA_OBJECTS="$EXTRA_OBJECTS inet_pton.o"
+    EXTRA_SOURCES="$EXTRA_SOURCES inet_pton.c"
+    EXTRA_IRCIO_OBJECTS="$EXTRA_IRCIO_OBJECTS inet_pton.o"
+    EXTRA_IRCIO_SOURCES="$EXTRA_IRCIO_SOURCES inet_pton.c"
+  fi
+fi
+if test x$ac_cv_func_getnameinfo != xyes
+then
+  EXTRA_OBJECTS="$EXTRA_OBJECTS getnameinfo.o"
+  EXTRA_SOURCES="$EXTRA_SOURCES getnameinfo.c"
+  if test x$ac_cv_func_inet_ntop != xyes
+  then
+    EXTRA_OBJECTS="$EXTRA_OBJECTS inet_ntop.o"
+    EXTRA_SOURCES="$EXTRA_SOURCES inet_ntop.c"
+  fi
+fi
+AC_SUBST(EXTRA_OBJECTS)
+AC_SUBST(EXTRA_SOURCES)
+AC_SUBST(EXTRA_IRCIO_OBJECTS)
+AC_SUBST(EXTRA_IRCIO_SOURCES)
+
+AC_FIND_PROGRAM(SENDMAIL,sendmail,/usr/sbin:/usr/lib:/usr/ucblib:/usr/local/sbin:/usr/pkg/sbin)
+
+AC_SUBST(RM)
+AC_SUBST(LN)
+AC_OUTPUT(Makefile ircbug)
+
+if test ! -f config.h; then
+  cp ${srcdir}/include/config.h.dist config.h
+fi
+
+echo
+echo well there we are, you now might want to look in config.h and 
+echo see if there is anything you might want to tune, else you can
+echo just run a make here..  good luck!
+echo
+

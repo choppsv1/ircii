@@ -1,0 +1,955 @@
+# IRC II - written by Michael Sandrof
+#
+# Copyright (c) 1991 Michael Sandrof.
+# Copyright (c) 1991, 1992 Troy Rollo.
+# Copyright (c) 1993-2014 Matthew R. Green.
+# Copyright (c) 1995 Scott Reynolds.
+# All rights reserved.
+#
+# written by matthew green.
+# adapted by scott reynolds, 04-sep-95
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. The name of the author may not be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+# @(#)$eterna: Makefile.in,v 1.121 2015/11/11 23:01:46 mrg Exp $
+
+# targets recognised by this makefile:
+#   all, everything	- compiles ircii, ircio, ircflush and wserv
+#   ircio		- compiles ircio
+#   ircflush		- compiles ircflush
+#   wserv		- compiles wserv
+#   install		- installs ircii, ircio, ircflush and wserv the scripts.
+#   installirc		- installs ircii
+#   installio		- installs ircio
+#   installwserv	- installs wserv
+#   installflush	- installs ircflush
+#   installscript 	- installs the scripts
+#   installhelp		- installs the help files
+#   installman          - installs the manual pages.
+#   installeverything   - all of the above
+#   clean               - remove all .o files, core, and binaries
+#   distclean           - remove all files geneated by compilation/installation.
+
+DESTDIR =
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+topdir = @srcdir@
+srcdir = @srcdir@/source
+incdir = @srcdir@/include
+VPATH = @srcdir@/source
+objdir = @objdir@
+bindir = $(DESTDIR)@bindir@
+datarootdir = $(DESTDIR)@datarootdir@
+libdir = $(DESTDIR)@libdir@
+libexecdir = $(DESTDIR)@libexecdir@
+# @mandir@ tends to be $datarootdir which already has $DESTDIR.
+mandir = @mandir@/man1
+
+# Where the ircII binary will be installed.
+# 'make install' will compile and install the program
+INSTALL_IRC_NAME = irc
+INSTALL_IRC = $(bindir)/$(INSTALL_IRC_NAME)
+
+# Where the ircII library will be.  Generally this is the place that
+# you put the scripts and help pages.  It is
+# very important that you set this correctly.
+IRCLIB = @IRCLIB@
+
+CC = @CC@
+DEFS = @DEFS@
+LIBS = @LIBS@
+
+# Set this to -g if you want to be able to debug the client, otherwise
+# use -O to have the compiler do some optimization instead.
+CFLAGS = @CFLAGS@ @DEBUGFLAGS@ @WARNINGFLAGS@ @ERRORFLAGS@
+
+# Set this to -s if you want the binary to be stripped.
+LDFLAGS = @LDFLAGS@
+
+## You probably don't need to change anything below this line
+
+# Full path of the directory for ircII help files.  
+HELP_DIR = $(IRCLIB)/help
+
+# Full path of the directory for the ircII scripts.
+INSTALL_SCRIPT = $(IRCLIB)/script
+
+# Default setting for IRC_PATH where irc will look for
+# its script files if the environment variable is undefined.
+# Usually, this should contain the same path as used for INSTALL_SCRIPT in
+# the Makefile, but it can contain multiple path elements
+# separated by colons. The path MUST lead to an existing directory,
+# because the 'global' script is expected to be found there.
+IRC_PATH = ~/.irc:$(INSTALL_SCRIPT):.
+
+# Set the next line to the full path for installation of the ircio program
+# if you wish to use it. 
+INSTALL_IRCIO = $(libexecdir)/ircio
+
+# This little program is necessary to have an interactive shell
+# in a window of ircII. The 'shell' script uses it, so also update
+# the path in there, if you want to enable this.
+INSTALL_IRCFLUSH = $(bindir)/ircflush
+
+# This program allows you to use screen/xterm's to put new irc windows
+# on new screen/xterm windows.
+INSTALL_WSERV = $(libexecdir)/wserv
+
+# This command will be used to install the irc help files.  If you don't
+# want to install them, replace with the following:
+# INSTALL_HELP_CMD = @echo The help files have not been installed.
+INSTALL_HELP_CMD = @INSTALL_HELP_CMD@
+
+## You shouldn't have to change anything below here
+
+RM = @RM@
+LN = @LN@
+CP = cp
+MV = mv
+SED = sed
+INSTALL = $(topdir)/bsdinstall -c -m 755
+INSTALL_DATA = $(topdir)/bsdinstall -c -m 644
+
+VERSION = @VERSION@
+
+SHELL = /bin/sh
+
+PROGRAMS = irc ircio ircflush wserv
+
+all: $(PROGRAMS)
+
+install: all installbin installscript installman installhelp
+
+installeverything: install installflush installio installwserv \
+	installscript installhelp
+
+everything: all ircflush ircio wserv
+
+installbin: installirc installio installflush installwserv
+
+installirc: irc installdirs
+	$(INSTALL) irc $(INSTALL_IRC)-$(VERSION)
+	$(INSTALL) ircbug $(bindir)/ircbug
+	@if test -f $(INSTALL_IRC).old; then $(RM) $(INSTALL_IRC).old; fi
+	@if test -f $(INSTALL_IRC); then $(MV) $(INSTALL_IRC) $(INSTALL_IRC).old; fi
+	$(RM) $(INSTALL_IRC)
+	$(LN) $(INSTALL_IRC_NAME)-$(VERSION) $(INSTALL_IRC)
+
+installscript: installdirs
+	(								\
+	cd $(topdir)/script;						\
+	for i in *; do							\
+		if test "$$i" = "local" -a -f $(INSTALL_SCRIPT)/local; then \
+			if test -f local; then				\
+				$(INSTALL_DATA) local $(INSTALL_SCRIPT)/local.orig; \
+			fi;						\
+		elif test "$$i" != "CVS" -a "$$i" != ".CVS"; then	\
+			$(INSTALL_DATA) $$i $(INSTALL_SCRIPT);		\
+		fi;							\
+	done;								\
+	chmod -x $(INSTALL_SCRIPT)/*					\
+	)
+
+installserv: installio
+installio: ircio installdirs
+	$(INSTALL) ircio $(INSTALL_IRCIO)
+
+installflush: ircflush installdirs
+	$(INSTALL) ircflush $(INSTALL_IRCFLUSH)
+
+installwserv: wserv installdirs
+	$(INSTALL) wserv $(INSTALL_WSERV)
+
+installhelp:
+	$(INSTALL_HELP_CMD)
+	find $(HELP_DIR) -type d -print | xargs chmod a+rx
+	find $(HELP_DIR) -type f -print | xargs chmod a+r
+
+installman:
+	(cd $(topdir)/doc; for i in ircII.1 ircbug.1; do $(INSTALL_DATA) $$i $(mandir); done)
+	(cd $(mandir); $(RM) irc.1; $(LN) ircII.1 irc.1)
+
+# not sure about installing this one yet.
+#	$(INSTALL_DATA) $(topdir)/doc/query-pr.1 $(mandir)
+
+installdirs:
+	umask 022; $(topdir)/mkinstalldirs $(IRCLIB) $(bindir) $(mandir) \
+		$(INSTALL_SCRIPT) $(HELP_DIR) $(libexecdir)
+
+clena clean:
+	cd $(objdir) &&	$(RM) $(PROGRAMS) $(OBJECTS) \
+		$(RIJNDAEL_OBJECTS) \
+		$(IRCFLUSH_OBJECTS) \
+		$(WSERV_OBJECTS) \
+		$(IRCIO_OBJECTS) \
+		*.core core a.out debug.log depend.mk \
+		mksiginc.o mksiginc sig.inc sig.inc.tmp \
+		cipher-test.o cipher-test
+
+distclean cleandir realclean: clean
+	cd $(objdir) &&	$(RM) Makefile config.status config.cache \
+		config.log defs.h ircbug rijndael-alg-ref.c \
+		rijndael-api-ref.c config.h
+
+autoconf: $(topdir)/configure
+
+$(topdir)/configure: $(topdir)/configure.in $(topdir)/aclocal.m4
+	cd $(topdir); autoconf
+
+autoheader: $(topdir)/include/defs.h.in
+
+Makefile: $(topdir)/Makefile.in
+	$(SHELL) ./config.status
+
+$(topdir)/include/defs.h.in: $(topdir)/configure.in $(topdir)/aclocal.m4
+	cd $(topdir); autoheader
+
+autofiles: autoconf autoheader
+
+config.h: $(incdir)/config.h.dist
+	@if test -f $(objdir)/config.h; then \
+		echo "$(incdir)/config.h.dist is newer than $(objdir)/config.h"; \
+		echo "remove it, update it or reconfigure"; \
+		echo "ircII in a new directory."; \
+		exit 1; \
+	else \
+		echo cp $(incdir)/config.h.dist $(objdir)/config.h ; \
+		cp $(incdir)/config.h.dist $(objdir)/config.h ; \
+	fi
+
+export: distclean autoconf autoheader
+
+dist:
+	( \
+		sed -e 's/@%VERSION%@/'$(VERSION)/ \
+			< $(topdir)/doc/ircii.spec.in \
+			> $(topdir)/doc/ircii.spec; \
+		cd $(topdir)/..; \
+		mv ircii ircii-$(VERSION); \
+		pax -w \
+			-s '#.*/CVS.*##' \
+			-s '#.*/\.CVS.*##' \
+			-s '#CVS.*##' \
+			-s '#\.CVS.*##' \
+			-s '#.*/obj.*##' \
+			-s '#.*/ID##' \
+			-f ircii-$(VERSION).tar ircii-$(VERSION); \
+		mv ircii-$(VERSION) ircii; \
+		cp ircii-$(VERSION).tar ircii-$(VERSION).tar2; \
+		bzip2 -9 ircii-$(VERSION).tar; \
+		mv ircii-$(VERSION).tar2 ircii-$(VERSION).tar; \
+		gzip -9 ircii-$(VERSION).tar; \
+	)
+
+
+RIJNDAEL_OBJECTS = rijndael-alg-ref.o rijndael-api-ref.o
+OBJECTS = alias.o crypt.o ctcp.o dcc.o debug.o edit.o exec.o flood.o \
+	funny.o help.o history.o hold.o hook.o icb.o if.o ignore.o \
+	input.o irc.o ircaux.o ircsig.o keys.o lastlog.o list.o log.o \
+	mail.o menu.o names.o newio.o notice.o notify.o numbers.o \
+	output.o parse.o queue.o reg.o scandir.o screen.o server.o \
+	sl.o ssl.o status.o strsep.o term.o translat.o vars.o whois.o \
+	window.o @EXTRA_OBJECTS@
+
+RIJNDAEL_SOURCES = rijndael-alg-ref.c rijndael-api-ref.c
+SOURCES = alias.c crypt.c ctcp.c dcc.c debug.c edit.c exec.c flood.c \
+	funny.c help.c history.c hold.c hook.c icb.c if.c ignore.c \
+	input.c irc.c ircaux.c ircsig.c keys.c lastlog.c list.c log.c \
+	mail.c menu.c names.c newio.c notice.c notify.c numbers.c \
+	output.c parse.c queue.c reg.c scandir.c screen.c server.c \
+	sl.c ssl.c status.c strsep.c term.c translat.c vars.c whois.c \
+	window.c @EXTRA_SOURCES@
+
+IRCIO_OBJECTS = ircio.o newio.o ircsig.o @EXTRA_IRCIO_OBJECTS@
+IRCIO_SOURCES = ircio.c @EXTRA_IRCIO_SOURCES@
+
+WSERV_OBJECTS = wserv.o wterm.o ircsig.o
+WSERV_SOURCES = wserv.c wterm.c
+
+IRCFLUSH_SOURCES = ircflush.c
+IRCFLUSH_OBJECTS = ircflush.o ircsig.o
+
+INCLUDES = -I. -I$(incdir) -I$(srcdir)/rijndael
+
+.c.o:
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -c $<
+
+irc: $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DEFS) -o $@ $(OBJECTS) $(LIBS)
+
+# .o files needing special compilation flags
+
+irc.o: $(objdir)/Makefile
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -DIRCLIB=\"$(IRCLIB)/\" -DIRCPATH=\"$(IRC_PATH)\" -c $(srcdir)/irc.c
+
+vars.o: $(objdir)/Makefile
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -DDEFAULT_HELP_PATH=\"$(HELP_DIR)\" -DWSERV_PATH=\"$(INSTALL_WSERV)\" -c $(srcdir)/vars.c
+
+help.o: $(objdir)/Makefile
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -DDEFAULT_HELP_PATH=\"$(HELP_DIR)\" -c $(srcdir)/help.c
+
+server.o: $(objdir)/Makefile
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -DIRCIO_PATH=\"$(INSTALL_IRCIO)\" -c $(srcdir)/server.c
+
+screen.o: $(objdir)/Makefile
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -c $(srcdir)/screen.c
+
+# auxiliary programs
+
+ircflush: $(IRCFLUSH_OBJECTS)
+	$(CC) $(INCLUDES) $(CFLAGS) $(LDFLAGS) $(DEFS) -o $@ $(IRCFLUSH_OBJECTS) $(LIBS)
+
+ircio: $(IRCIO_OBJECTS)
+	$(CC) $(INCLUDES) $(CFLAGS) $(LDFLAGS) $(DEFS) $(PPS_DEFS) -o $@ $(IRCIO_OBJECTS) $(LIBS)
+
+wserv: $(WSERV_OBJECTS)
+	$(CC) $(INCLUDES) $(CFLAGS) $(LDFLAGS) $(DEFS) -o $@ $(WSERV_OBJECTS) $(LIBS)
+
+# use this to generate something to include below.
+makedepend: $(SOURCES) $(IRCIO_SOURCES) $(WSERV_SOURCES) $(IRCFLUSH_SOURCES)
+	$(RM) depend.mk
+	gcc -MM $(INCLUDES) $(CFLAGS) $(DEFS) $> | sed \
+		-e 's/^ /	/' \
+		-e s#$(topdir)#$$'(topdir)'#g \
+		> depend.mk
+
+rijndael-alg-ref.c: $(srcdir)/rijndael/rijndael-alg-ref.c
+	cp $(srcdir)/rijndael/rijndael-alg-ref.c .
+
+rijndael-api-ref.c: $(srcdir)/rijndael/rijndael-api-ref.c
+	cp $(srcdir)/rijndael/rijndael-api-ref.c .
+
+mksigincc:
+	$(srcdir)/mkmksiginc.pl > $(srcdir)/mksiginc.c
+
+mksiginc.o: mksiginc.c
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -c $(srcdir)/mksiginc.c
+
+mksiginc: mksiginc.o
+	$(CC) $(INCLUDES) $(CFLAGS) $(LDFLAGS) $(DEFS) -o $@ mksiginc.o $(LIBS)
+
+sig.inc: mksiginc
+	./mksiginc > sig.inc.tmp && mv sig.inc.tmp sig.inc
+
+cipher-test.o: $(topdir)/source/cipher-test.c
+	$(CC) $(INCLUDES) $(CFLAGS) $(DEFS) -c $(srcdir)/cipher-test.c
+
+cipher-test: cipher-test.o $(RIJNDAEL_OBJECTS)
+	$(CC) $(INCLUDES) $(CFLAGS) $(LDFLAGS) $(DEFS) -o $@ cipher-test.o $(RIJNDAEL_OBJECTS) $(LIBS)
+
+# this is the "depend.mk" file created above.
+# --- ALL BELOW IS AUTOMATICALLY GENERATED ---
+
+alias.o: $(topdir)/source/alias.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/alias.h $(topdir)/include/dcc.h \
+	$(topdir)/include/status.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/edit.h \
+	$(topdir)/include/history.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/server.h \
+	$(topdir)/include/screen.h $(topdir)/include/input.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/names.h $(topdir)/include/output.h \
+	$(topdir)/include/parse.h $(topdir)/include/notify.h \
+	$(topdir)/include/ignore.h $(topdir)/include/exec.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/numbers.h
+crypt.o: $(topdir)/source/crypt.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/irccrypt.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/list.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/output.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h \
+	$(topdir)/source/cast.c $(topdir)/include/cast_sbox.h
+ctcp.o: $(topdir)/source/ctcp.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/hook.h \
+	$(topdir)/include/irccrypt.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/vars.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/whois.h \
+	$(topdir)/include/edit.h $(topdir)/include/status.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/menu.h \
+	$(topdir)/include/server.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/ignore.h $(topdir)/include/output.h \
+	$(topdir)/include/window.h $(topdir)/include/dcc.h \
+	$(topdir)/include/names.h $(topdir)/include/parse.h \
+	$(topdir)/include/whois.h
+dcc.o: $(topdir)/source/dcc.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/whois.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/dcc.h $(topdir)/include/hook.h \
+	$(topdir)/include/vars.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/output.h $(topdir)/include/newio.h \
+	$(topdir)/include/ssl.h $(topdir)/include/irccrypt.h \
+	$(topdir)/include/parse.h
+debug.o: $(topdir)/source/debug.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/debug.h
+edit.o: $(topdir)/source/edit.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/parse.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/edit.h $(topdir)/include/irccrypt.h \
+	$(topdir)/include/vars.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/whois.h \
+	$(topdir)/include/hook.h $(topdir)/include/input.h \
+	$(topdir)/include/ignore.h $(topdir)/include/keys.h \
+	$(topdir)/include/names.h $(topdir)/include/alias.h \
+	$(topdir)/include/history.h $(topdir)/include/funny.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/dcc.h \
+	$(topdir)/include/translat.h $(topdir)/include/output.h \
+	$(topdir)/include/exec.h $(topdir)/include/notify.h \
+	$(topdir)/include/numbers.h $(topdir)/include/status.h \
+	$(topdir)/include/if.h $(topdir)/include/help.h \
+	$(topdir)/include/queue.h $(topdir)/include/icb.h \
+	$(topdir)/include/strsep.h
+exec.o: $(topdir)/source/exec.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/exec.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/hook.h \
+	$(topdir)/include/input.h $(topdir)/include/list.h \
+	$(topdir)/include/server.h $(topdir)/include/output.h \
+	$(topdir)/include/parse.h $(topdir)/include/dcc.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h \
+	$(topdir)/include/alias.h sig.inc
+flood.o: $(topdir)/source/flood.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/hook.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/ignore.h $(topdir)/include/flood.h \
+	$(topdir)/include/vars.h $(topdir)/include/output.h
+funny.o: $(topdir)/source/funny.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/hook.h \
+	$(topdir)/include/vars.h $(topdir)/include/funny.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/whois.h \
+	$(topdir)/include/edit.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/output.h \
+	$(topdir)/include/numbers.h $(topdir)/include/parse.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/input.h
+help.o: $(topdir)/source/help.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/whois.h \
+	$(topdir)/include/edit.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/input.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/menu.h \
+	$(topdir)/include/server.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/output.h $(topdir)/include/help.h \
+	$(topdir)/include/scandir.h $(topdir)/include/sl.h
+history.o: $(topdir)/source/history.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/vars.h \
+	$(topdir)/include/history.h $(topdir)/include/output.h \
+	$(topdir)/include/input.h $(topdir)/include/debug.h
+hold.o: $(topdir)/source/hold.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/vars.h $(topdir)/include/input.h
+hook.o: $(topdir)/source/hook.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/hook.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/alias.h \
+	$(topdir)/include/list.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/server.h \
+	$(topdir)/include/output.h $(topdir)/include/edit.h \
+	$(topdir)/include/buffer.h
+icb.o: $(topdir)/source/icb.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/output.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/parse.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/input.h $(topdir)/include/icb.h \
+	$(topdir)/include/hook.h $(topdir)/include/ignore.h \
+	$(topdir)/include/flood.h $(topdir)/include/whois.h \
+	$(topdir)/include/notice.h
+if.o: $(topdir)/source/if.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/alias.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/vars.h $(topdir)/include/output.h \
+	$(topdir)/include/if.h
+ignore.o: $(topdir)/source/ignore.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ignore.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/list.h $(topdir)/include/vars.h \
+	$(topdir)/include/output.h
+input.o: $(topdir)/source/input.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/input.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/alias.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/exec.h $(topdir)/include/output.h \
+	$(topdir)/include/translat.h $(topdir)/include/debug.h
+irc.o: $(topdir)/source/irc.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/status.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/dcc.h \
+	$(topdir)/include/names.h $(topdir)/include/vars.h \
+	$(topdir)/include/input.h $(topdir)/include/alias.h \
+	$(topdir)/include/output.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/exec.h $(topdir)/include/screen.h \
+	$(topdir)/include/input.h $(topdir)/include/log.h \
+	$(topdir)/include/server.h $(topdir)/include/hook.h \
+	$(topdir)/include/keys.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/edit.h $(topdir)/include/window.h \
+	$(topdir)/include/history.h $(topdir)/include/notify.h \
+	$(topdir)/include/mail.h $(topdir)/include/debug.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/parse.h \
+	$(topdir)/include/strsep.h $(topdir)/include/notice.h \
+	$(topdir)/include/icb.h
+ircaux.o: $(topdir)/source/ircaux.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/output.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/newio.h \
+	$(topdir)/include/ssl.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/whois.h \
+	$(topdir)/include/edit.h
+ircsig.o: $(topdir)/source/ircsig.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h
+keys.o: $(topdir)/source/keys.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/output.h $(topdir)/include/keys.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/edit.h $(topdir)/include/vars.h \
+	$(topdir)/include/translat.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/input.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/menu.h $(topdir)/source/empty_metakeys.inc
+lastlog.o: $(topdir)/source/lastlog.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/vars.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/output.h $(topdir)/include/ircterm.h
+list.o: $(topdir)/source/list.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/list.h $(topdir)/include/ircaux.h
+log.o: $(topdir)/source/log.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/log.h $(topdir)/include/vars.h \
+	$(topdir)/include/output.h $(topdir)/include/ircaux.h
+mail.o: $(topdir)/source/mail.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h \
+	$(topdir)/include/mail.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/hook.h $(topdir)/include/vars.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/output.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h
+menu.o: $(topdir)/source/menu.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/menu.h $(topdir)/include/list.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/input.h \
+	$(topdir)/include/vars.h $(topdir)/include/output.h
+names.o: $(topdir)/source/names.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/server.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/list.h \
+	$(topdir)/include/output.h $(topdir)/include/notify.h \
+	$(topdir)/include/vars.h
+newio.o: $(topdir)/source/newio.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/newio.h \
+	$(topdir)/include/ssl.h $(topdir)/include/irc_std.h \
+	$(topdir)/include/debug.h
+notice.o: $(topdir)/source/notice.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/whois.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/flood.h \
+	$(topdir)/include/vars.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/hook.h $(topdir)/include/ignore.h \
+	$(topdir)/include/server.h $(topdir)/include/funny.h \
+	$(topdir)/include/output.h $(topdir)/include/names.h \
+	$(topdir)/include/parse.h $(topdir)/include/notify.h \
+	$(topdir)/include/notice.h
+notify.o: $(topdir)/source/notify.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/list.h $(topdir)/include/notify.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/whois.h \
+	$(topdir)/include/hook.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/whois.h \
+	$(topdir)/include/edit.h $(topdir)/include/output.h \
+	$(topdir)/include/vars.h
+numbers.o: $(topdir)/source/numbers.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/input.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/vars.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/hook.h $(topdir)/include/server.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/numbers.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/menu.h \
+	$(topdir)/include/server.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/output.h $(topdir)/include/names.h \
+	$(topdir)/include/funny.h $(topdir)/include/parse.h \
+	$(topdir)/include/notice.h
+output.o: $(topdir)/source/output.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/output.h $(topdir)/include/vars.h \
+	$(topdir)/include/input.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/hook.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/log.h \
+	$(topdir)/include/alias.h $(topdir)/include/translat.h \
+	$(topdir)/include/buffer.h
+parse.o: $(topdir)/source/parse.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/names.h $(topdir)/include/vars.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/hook.h \
+	$(topdir)/include/edit.h $(topdir)/include/ignore.h \
+	$(topdir)/include/whois.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/funny.h \
+	$(topdir)/include/irccrypt.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/flood.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/output.h \
+	$(topdir)/include/numbers.h $(topdir)/include/parse.h \
+	$(topdir)/include/notify.h $(topdir)/include/notice.h \
+	$(topdir)/include/alias.h
+queue.o: $(topdir)/source/queue.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/alias.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/debug.h $(topdir)/include/output.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/if.h $(topdir)/include/queue.h
+reg.o: $(topdir)/source/reg.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircaux.h
+scandir.o: $(topdir)/source/scandir.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h
+screen.o: $(topdir)/source/screen.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/input.h \
+	$(topdir)/include/menu.h $(topdir)/include/window.h \
+	$(topdir)/include/output.h $(topdir)/include/vars.h \
+	$(topdir)/include/server.h $(topdir)/include/list.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/names.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/input.h \
+	$(topdir)/include/log.h $(topdir)/include/hook.h \
+	$(topdir)/include/dcc.h $(topdir)/include/translat.h \
+	$(topdir)/include/exec.h $(topdir)/include/newio.h \
+	$(topdir)/include/ssl.h $(topdir)/include/parse.h \
+	$(topdir)/include/edit.h $(topdir)/include/strsep.h
+server.o: $(topdir)/source/server.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/menu.h $(topdir)/include/server.h \
+	$(topdir)/include/input.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/whois.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/exec.h $(topdir)/include/window.h \
+	$(topdir)/include/output.h $(topdir)/include/names.h \
+	$(topdir)/include/parse.h $(topdir)/include/list.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h \
+	$(topdir)/include/vars.h $(topdir)/include/hook.h \
+	$(topdir)/include/icb.h $(topdir)/include/notice.h \
+	$(topdir)/include/ssl.h
+sl.o: $(topdir)/source/sl.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/sl.h
+ssl.o: $(topdir)/source/ssl.c $(topdir)/include/irc.h defs.h \
+	config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ssl.h $(topdir)/include/output.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/ircaux.h $(topdir)/include/debug.h \
+	$(topdir)/include/vars.h
+status.o: $(topdir)/source/status.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/status.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/server.h $(topdir)/include/vars.h \
+	$(topdir)/include/hook.h $(topdir)/include/input.h \
+	$(topdir)/include/edit.h $(topdir)/include/window.h \
+	$(topdir)/include/screen.h $(topdir)/include/input.h \
+	$(topdir)/include/mail.h $(topdir)/include/output.h \
+	$(topdir)/include/names.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/translat.h $(topdir)/include/debug.h
+strsep.o: $(topdir)/source/strsep.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/strsep.h
+term.o: $(topdir)/source/term.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircterm.h $(topdir)/include/translat.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/output.h
+translat.o: $(topdir)/source/translat.c \
+	$(topdir)/include/irc.h defs.h config.h \
+	$(topdir)/include/socks_compat.h $(topdir)/include/irc_std.h \
+	$(topdir)/include/debug.h $(topdir)/include/vars.h \
+	$(topdir)/include/translat.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/edit.h \
+	$(topdir)/include/whois.h $(topdir)/include/menu.h \
+	$(topdir)/include/names.h $(topdir)/include/irc.h \
+	$(topdir)/include/server.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/input.h $(topdir)/include/output.h \
+	$(topdir)/include/edit.h $(topdir)/source/digraph.inc
+vars.o: $(topdir)/source/vars.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/status.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/window.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/log.h \
+	$(topdir)/include/irccrypt.h $(topdir)/include/history.h \
+	$(topdir)/include/notify.h $(topdir)/include/vars.h \
+	$(topdir)/include/input.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/whois.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/translat.h $(topdir)/include/output.h \
+	$(topdir)/include/server.h $(topdir)/include/dcc.h \
+	$(topdir)/include/ssl.h
+whois.o: $(topdir)/source/whois.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/whois.h $(topdir)/include/hook.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/vars.h \
+	$(topdir)/include/server.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/ctcp.h \
+	$(topdir)/include/whois.h $(topdir)/include/edit.h \
+	$(topdir)/include/ignore.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/notify.h $(topdir)/include/numbers.h \
+	$(topdir)/include/window.h $(topdir)/include/hold.h \
+	$(topdir)/include/lastlog.h $(topdir)/include/menu.h \
+	$(topdir)/include/server.h $(topdir)/include/edit.h \
+	$(topdir)/include/output.h $(topdir)/include/parse.h \
+	$(topdir)/include/ctcp.h
+window.o: $(topdir)/source/window.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/screen.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/input.h \
+	$(topdir)/include/menu.h $(topdir)/include/window.h \
+	$(topdir)/include/vars.h $(topdir)/include/server.h \
+	$(topdir)/include/list.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/names.h $(topdir)/include/ircaux.h \
+	$(topdir)/include/input.h $(topdir)/include/status.h \
+	$(topdir)/include/output.h $(topdir)/include/log.h \
+	$(topdir)/include/hook.h $(topdir)/include/dcc.h \
+	$(topdir)/include/translat.h $(topdir)/include/icb.h \
+	$(topdir)/include/parse.h $(topdir)/include/strsep.h
+ircio.o: $(topdir)/source/ircio.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/newio.h $(topdir)/include/ssl.h
+wserv.o: $(topdir)/source/wserv.c $(topdir)/include/irc.h \
+	defs.h config.h $(topdir)/include/socks_compat.h \
+	$(topdir)/include/irc_std.h $(topdir)/include/debug.h \
+	$(topdir)/include/ircterm.h
+wterm.o: $(topdir)/source/wterm.c $(topdir)/source/term.c \
+	$(topdir)/include/irc.h defs.h config.h \
+	$(topdir)/include/socks_compat.h $(topdir)/include/irc_std.h \
+	$(topdir)/include/debug.h $(topdir)/include/ircterm.h \
+	$(topdir)/include/translat.h $(topdir)/include/window.h \
+	$(topdir)/include/hold.h $(topdir)/include/lastlog.h \
+	$(topdir)/include/edit.h $(topdir)/include/whois.h \
+	$(topdir)/include/menu.h $(topdir)/include/names.h \
+	$(topdir)/include/irc.h $(topdir)/include/server.h \
+	$(topdir)/include/ctcp.h $(topdir)/include/screen.h \
+	$(topdir)/include/window.h $(topdir)/include/input.h \
+	$(topdir)/include/output.h
+ircflush.o: $(topdir)/source/ircflush.c \
+	$(topdir)/include/irc.h defs.h config.h \
+	$(topdir)/include/socks_compat.h $(topdir)/include/irc_std.h \
+	$(topdir)/include/debug.h

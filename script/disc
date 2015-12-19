@@ -1,0 +1,6 @@
+#	$eterna: disc,v 1.2 2001/08/12 15:57:10 mrg Exp $
+#
+# Example on how to customize the stop_irc function with ^Z
+# (taken from The_Edge)
+bind meta1-^z stop_irc
+bind ^z parse away I'm disconnected... be right back...;type 

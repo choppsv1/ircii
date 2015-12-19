@@ -1,0 +1,36 @@
+#	$eterna: icb,v 1.14 2014/08/06 19:46:59 mrg Exp $
+#
+# icb support script
+
+# these should have better outputs.
+
+alias bcount ^icb msg server bcount
+alias annoy ^icb msg server beep
+alias boot ^icb boot
+alias brick ^icb msg server brick
+alias cancel ^icb cancel
+alias drop ^icb msg server drop
+alias echoback ^icb echo
+alias exclude ^icb msg server exclude $0-;echo [excluding $0] > $1-
+alias group ^icb group
+alias hush ^icb msg server hush
+alias news ^icb msg server news
+alias nosecure ^icb msg server nosecure
+#alias notify ...!
+alias pass ^icb pass
+alias read ^icb msg server read
+alias register ^icb msg server p
+alias s_help ^icb msg server s_help
+alias secure ^icb msg server secure
+alias shuttime ^icb msg server shuttime
+alias status ^icb status
+alias whereis ^icb msg server whereis
+alias write ^icb msg server write
+
+# special ones
+alias topic if (servertype() == [ICB]) {^icb topic $*}{${K}${K}topic $*}
+alias who if (servertype() == [ICB]) {^icb who $*}{${K}${K}who $*}
+alias invite if (servertype() == [ICB]) {^icb invite $*}{${K}${K}invite $*}
+alias away if (servertype() == [ICB]) {^icb msg server away $*}{${K}${K}away $*}
+alias ping if (servertype() == [ICB]) {^icb msg server ping $*}{${K}${K}ping $*}
+alias stats if (servertype() == [ICB]) {^icb msg server stats $*}{${K}${K}stats $*}

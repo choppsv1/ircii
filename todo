@@ -1,0 +1,10 @@
+$eterna: todo,v 1.22 2014/03/12 09:15:43 mrg Exp $
+
+mrg's list:
+
+- better/smarter file reader (gzip, bzip2, etc.)  perhaps just
+  include my/netbsd gzip.
+
+ian's list:
+
+[ =Dae= <16:41> ] figure out /win new level snotes

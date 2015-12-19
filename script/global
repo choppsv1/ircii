@@ -1,0 +1,20 @@
+#	$eterna: global,v 1.4 2001/08/12 15:57:11 mrg Exp $
+#
+# This is the global ircrc
+# Please make your installation changes in 'local'
+#
+# These two aliases are used by the scripts 
+alias d- ^set display off
+alias d+ ^set display on
+#
+# The basic setup for ircII
+#load basical
+
+load 2.8script
+load extensions
+load version
+load local
+load tabkey
+load icb
+
+alias ison ${K}${K}quote ison $*

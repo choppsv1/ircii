@@ -1,0 +1,253 @@
+/* include/defs.h.in.  Generated from configure.in by autoheader.  */
+
+/* define this to be the name[:port] of the default server */
+#undef DEFAULT_SERVER
+
+/* Define this to the random device to use */
+#undef DEV_RANDOM_PATH
+
+/* define this if you have struct addrinfo */
+#undef HAVE_ADDRINFO
+
+/* define this if you have crypt(3) */
+#undef HAVE_CRYPT
+
+/* Define to 1 if you have the <crypt.h> header file. */
+#undef HAVE_CRYPT_H
+
+/* Define this if you have /dev/random */
+#undef HAVE_DEV_RANDOM
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the `fputc' function. */
+#undef HAVE_FPUTC
+
+/* Define to 1 if you have the `fwrite' function. */
+#undef HAVE_FWRITE
+
+/* define this if you have getaddrinfo(3) */
+#undef HAVE_GETADDRINFO
+
+/* Define to 1 if you have the `gethostbyname2' function. */
+#undef HAVE_GETHOSTBYNAME2
+
+/* define this if you have getnameinfo(3) */
+#undef HAVE_GETNAMEINFO
+
+/* Define to 1 if you have the `getpgid' function. */
+#undef HAVE_GETPGID
+
+/* Define to 1 if you have the `getsid' function. */
+#undef HAVE_GETSID
+
+/* Define to 1 if you have the <iconv.h> header file. */
+#undef HAVE_ICONV_H
+
+/* Define to 1 if you have the `iconv_open' function. */
+#undef HAVE_ICONV_OPEN
+
+/* Define to 1 if you have the `inet_ntop' function. */
+#undef HAVE_INET_NTOP
+
+/* Define to 1 if you have the `inet_pton' function. */
+#undef HAVE_INET_PTON
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the `memmove' function. */
+#undef HAVE_MEMMOVE
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <netdb.h> header file. */
+#undef HAVE_NETDB_H
+
+/* Define to 1 if you have the <process.h> header file. */
+#undef HAVE_PROCESS_H
+
+/* define this if you have RFC 2553 <netdb.h> (IPv6) */
+#undef HAVE_RFC2553_NETDB
+
+/* Define to 1 if you have the `scandir' function. */
+#undef HAVE_SCANDIR
+
+/* Define to 1 if you have the `setenv' function. */
+#undef HAVE_SETENV
+
+/* Define to 1 if you have the `setsid' function. */
+#undef HAVE_SETSID
+
+/* Define to 1 if you have the `snprintf' function. */
+#undef HAVE_SNPRINTF
+
+/* define this if your struct sockaddr has a sa_len member */
+#undef HAVE_SOCKADDR_SA_LEN
+
+/* define this if you have socklen_t */
+#undef HAVE_SOCKLEN_T
+
+/* define this if you have ssize_t type */
+#undef HAVE_SSIZE_T
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strftime' function. */
+#undef HAVE_STRFTIME
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/fcntl.h> header file. */
+#undef HAVE_SYS_FCNTL_H
+
+/* Define to 1 if you have the <sys/file.h> header file. */
+#undef HAVE_SYS_FILE_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/uio.h> header file. */
+#undef HAVE_SYS_UIO_H
+
+/* Define to 1 if you have the <sys/un.h> header file. */
+#undef HAVE_SYS_UN_H
+
+/* Define to 1 if you have the <termcap.h> header file. */
+#undef HAVE_TERMCAP_H
+
+/* Define to 1 if you have the `tzset' function. */
+#undef HAVE_TZSET
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `unsetenv' function. */
+#undef HAVE_UNSETENV
+
+/* Define to 1 if you have the `vasprintf' function. */
+#undef HAVE_VASPRINTF
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
+/* Define to 1 if you have the `waitpid' function. */
+#undef HAVE_WAITPID
+
+/* Define to 1 if you have the `writev' function. */
+#undef HAVE_WRITEV
+
+/* define this if your iconv(3)'s 2nd argument is const */
+#undef ICONV_CONST_ARG2
+
+/* define this if you have crypt(3) */
+#undef INCLUDE_CURSES_H
+
+/* define this if you have IPv6 API support */
+#undef INET6
+
+/* define this if you need fchmod() */
+#undef NEED_FCHMOD
+
+/* define this if you need getcwd() */
+#undef NEED_GETCWD
+
+/* define this if you need strerror(3) */
+#undef NEED_STRERROR
+
+/* define this to use non-blocking connects. Precluded by SOCKS */
+#undef NON_BLOCKING_CONNECTS
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* define this if you want to be paranoid */
+#undef PARANOID
+
+/* Define this if compiling with SOCKS (the firewall traversal library) */
+#undef SOCKS
+
+/* Define this if using the SOCKS version 4 library */
+#undef SOCKS4
+
+/* Define this if using the SOCKS version 5 library */
+#undef SOCKS5
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
+#undef TIME_WITH_SYS_TIME
+
+/* define this to the location of normal unix mail */
+#undef UNIX_MAIL
+
+/* define this if you want to use OpenSSL */
+#undef USE_OPENSSL
+
+/* define this if you want Emacs metakey support */
+#undef WITH_EMACS_META_KEYS
+
+/* define these to the ZCAT args of your choice */
+#undef ZARGS
+
+/* define this to the ZCAT program of your choice */
+#undef ZCAT
+
+/* define these to the ZCAT suffer of your choice(.gz) */
+#undef ZSUFFIX
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef gid_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef mode_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef uid_t

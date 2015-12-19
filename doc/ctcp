@@ -1,0 +1,49 @@
+@(#)$eterna: ctcp,v 1.2 2001/08/12 15:42:27 mrg Exp $
+
+ircII CTCP implementation notes:
+
+[ i've heard and seen all sorts of CTCP specification papers
+  but this document describes what ircII has done for at least
+  7 years --mrg 1999/3/7 ]
+
+
+ircII sends ctcp messages in the following format:
+
+	^A<type>[ <type-specific-data>]^A
+
+where <type> and <type-specific-data> are the ctcp request (version,
+dcc, etc.) and any data supplied with the request.  ctcp request
+messages are always sent as an IRC PRIVMSG command.  ctcp reply
+messages are always send as an IRC NOTICE command.  this limits
+the scope of CTCP to IRC currently [*], if you wish to use replies.
+
+multiple requests can be sent in one message, by simply putting
+them together, either back to back, or with normal message text
+in between.  ircII strips the ctcp messages out, processes then,
+and returns the remaining text.
+
+ctcp quoting.
+
+as CTCP uses the ^A character as a message delimiter, it makes
+it impossible to send an embeded ^A without some quoting mechanism.
+ircII uses the typical UNIX quote character \ to quote these
+characters:
+real character	converted string	description
+	^A		\ a		- ctcp message delimiter
+	\n		\ n		- new line
+	\r		\ r		- line feed
+	\		\ \		- quote character
+	\0		\ 0		- null character
+	:		\ :		- irc message separator
+
+by converting them into the two characters in the second column.
+each of the above characters is able to corrupt the data if it
+is not quoted.
+
+
+mrg@eterna.com.au
+
+
+[*] one possible way would be to define that the ctcp reply request
+is really a ctc reply.  eg, i send ^AREPLY VERSION <my version>^A
+as a "normal message".

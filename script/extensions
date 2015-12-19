@@ -1,0 +1,24 @@
+#	$eterna: extensions,v 1.3 2002/10/12 12:41:43 mrg Exp $
+#
+#
+# This file contains extensions to IRCII which needn't be
+# coded into the C source.
+#
+
+# The new usermode, written as users want to know about it
+
+alias umode mode $N
+
+# DMSG and DQUERY have been replaced. These alii return the
+# commands to the user, although the functionality has been
+# changed slightly.
+
+alias dmsg msg =$0 $1-
+alias dquery /query =$0
+
+# this script is neet!
+
+load newaway
+
+# random fun stuff
+alias goob say /goob

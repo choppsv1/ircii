@@ -1,0 +1,343 @@
+From kalt@ensta.ensta.fr  Thu Mar  7 23:00:47 1996
+Received: from ensta.ensta.fr (ensta.ensta.fr [147.250.1.1]) by eterna.com.au (8.7.4/8.7.3) with ESMTP id XAA28542 for <ircii-bugs@splode.eterna.com.au>; Thu, 7 Mar 1996 23:00:30 +1100 (EST)
+Received: from syrk.ensta.fr (syrk.ensta.fr [147.250.7.219]) by ensta.ensta.fr (8.7.4/8.7.3) with ESMTP id MAA05555; Thu, 7 Mar 1996 12:55:52 +0100 (MET)
+Received: (kalt@localhost) by syrk.ensta.fr (8.6.11/8.6.4) id MAA10396; Thu, 7 Mar 1996 12:55:51 +0100
+Message-Id: <199603071155.MAA10396@syrk.ensta.fr>
+Date: Thu, 7 Mar 1996 12:55:51 +0100
+From: kalt@ensta.fr
+Reply-To: kalt@hugo.int-evry.fr
+To: ircii-bugs@eterna.com.au
+Cc: kalt@hugo.int-evry.fr
+Subject: updated diff for random nickname feature
+X-Send-Pr-Version: 3.96
+
+>Number:         78
+>Category:       change-request
+>Synopsis:       adds random nickname feature, highly user configurable
+>Confidential:   no
+>Severity:       non-critical
+>Priority:       low
+>Responsible:    mrg-pr (matthew green)
+>State:          open
+>Class:          change-request
+>Submitter-Id:   net
+>Arrival-Date:   Thu Mar  7 23:17:05 1996
+>Last-Modified:
+>Originator:     Christophe KALT
+>Organization:
+	
+>Release:        2.8.15
+>Environment:
+	
+System: NetBSD syrk.ensta.fr 1.0A NetBSD 1.0A (ensta) #0: Sat Jun 3 20:42:24 MET DST 1995 bouyer@bsdtest.ensta.fr:/usr/travail/src08.03.95/sys/arch/i386/compile/ensta i386
+
+
+>Description:
+see PR # 30
+
+Thanks you for considering this diff again.
+I have helps files somewhere out there, so when you include
+it, let me know.
+
+after applying, run 'make headers'
+>How-To-Repeat:
+	
+>Fix:
+diff -crBb ircii-2.8.15.Mar07/include/numbers.h ircii-2.8.15.Mar07+krys/include/numbers.h
+*** ircii-2.8.15.Mar07/include/numbers.h	Thu Aug 31 05:51:49 1995
+--- ircii-2.8.15.Mar07+krys/include/numbers.h	Thu Mar  7 11:58:18 1996
+***************
+*** 16,20 ****
+--- 16,21 ----
+  	char	*numeric_banner _((void));
+  	void	display_msg _((char *, char **));
+  	void	numbered_command _((char *, int, char **));
++ 	char	*random_nick_gen _((void));
+  
+  #endif /* __numbers_h_ */
+diff -crBb ircii-2.8.15.Mar07/include/vars.h.proto ircii-2.8.15.Mar07+krys/include/vars.h.proto
+*** ircii-2.8.15.Mar07/include/vars.h.proto	Thu Dec 14 00:53:22 1995
+--- ircii-2.8.15.Mar07+krys/include/vars.h.proto	Thu Mar  7 11:58:18 1996
+***************
+*** 94,99 ****
+--- 94,101 ----
+  #define NOTIFY_LEVEL_VAR $
+  #define NOTIFY_ON_TERMINATION_VAR $
+  #define NOVICE_VAR $
++ #define RANDOM_BASE_VAR $
++ #define RANDOM_NICK_VAR $
+  #define REALNAME_VAR $
+  #define SAME_WINDOW_ONLY_VAR $
+  #define SCREEN_OPTIONS_VAR $
+diff -crBb ircii-2.8.15.Mar07/source/edit.c ircii-2.8.15.Mar07+krys/source/edit.c
+*** ircii-2.8.15.Mar07/source/edit.c	Fri Mar  1 14:00:39 1996
+--- ircii-2.8.15.Mar07+krys/source/edit.c	Thu Mar  7 11:58:20 1996
+***************
+*** 137,142 ****
+--- 137,143 ----
+  static	void	userhost _((char *, char *, char *));
+  static	void	info _((char *, char *, char *));
+  static	void	e_nick _((char *, char *, char *));
++ static	void	e_rnick _((char *, char *, char *));
+  static	void	comment _((char *, char *, char *));
+  static	void	sleepcmd _((char *, char *, char *));
+  static	void	version _((char *, char *, char *));
+***************
+*** 275,280 ****
+--- 276,282 ----
+  	{ "REHASH",	"REHASH",	send_comm,		0 },
+  	{ "REQUEST",	NULL,		ctcp,			0 },
+  	{ "RESTART",	"RESTART",	send_comm,		0 },
++ 	{ "RNICK",	"NICK",		e_rnick,		0 },
+  	{ "SAVE",	NULL,		save_settings,		0 },
+  	{ "SAY",	empty_string,	do_send_text,		0 },
+  	{ "SEND",	NULL,		do_send_text,		0 },
+***************
+*** 1051,1056 ****
+--- 1053,1076 ----
+  		say("Bad nickname");
+  }
+  
++ /*
++  * e_rnick: does the /NICK command.  Records the users current nickname and
++  * sends the command on to the server 
++  */
++ /*ARGSUSED*/
++ static        void
++ e_rnick(command, args, subargs)
++       char    *command,
++ 	*args,
++ 	*subargs;
++ {
++ 	char *nick;
++ 	
++ 	send_to_server("NICK %s", nick = random_nick_gen());
++ 	if (attempting_to_connect)
++ 		set_server_nickname(get_window_server(0), nick);
++ }
++ 
+  /* version: does the /VERSION command with some IRCII version stuff */
+  static	void
+  version(command, args, subargs)
+diff -crBb ircii-2.8.15.Mar07/source/irc.c ircii-2.8.15.Mar07+krys/source/irc.c
+*** ircii-2.8.15.Mar07/source/irc.c	Fri Mar  1 14:00:42 1996
+--- ircii-2.8.15.Mar07+krys/source/irc.c	Thu Mar  7 12:37:39 1996
+***************
+*** 576,581 ****
+--- 576,587 ----
+  	{
+  		fprintf(stderr, "Illegal nickname %s\n", nickname);
+  		exit(1);
++ 	}
++ 	if ((char *) 0 != (ptr = getenv("IRCRANDOM")))
++ 	{
++ 		set_int_var(RANDOM_NICK_VAR, atoi(ptr));
++ 		if (atoi(ptr) & 0x30)
++  			set_string_var (RANDOM_BASE_VAR, nickname);
+  	}
+  	if ((char *) 0 == ircrc_file)
+  	{
+diff -crBb ircii-2.8.15.Mar07/source/numbers.c ircii-2.8.15.Mar07+krys/source/numbers.c
+*** ircii-2.8.15.Mar07/source/numbers.c	Tue Jan 30 14:00:27 1996
+--- ircii-2.8.15.Mar07+krys/source/numbers.c	Thu Mar  7 11:58:21 1996
+***************
+*** 32,37 ****
+--- 32,95 ----
+  #include "whois.h"
+  #include "funny.h"
+  #include "parse.h"
++ #include <stdlib.h>
++ #include <time.h>
++ #include <string.h>
++ 
++ #define RN nickchar[rand()%strlen(nickchar)]
++ 
++ char *
++ random_nick_gen () 
++ {
++ 	static char nickchar[]=
++ 		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
++ 	static char translatechar[]=
++ 		"4q[p3f9h1]k1nm0bdr5lu^mx954P[Q3F9H1]K1NM0BDR5TU^mX95";
++ 	static char kn[10] = "";
++ 	static int count = 0;
++ 	
++ 	if (kn[0] == '\000')
++ 		srand(time(NULL));
++ 	sprintf (kn,"%c%c%c%c%c%c%c%c%c",RN,RN,RN,RN,RN,RN,RN,RN,RN);
++ 	if (get_int_var(RANDOM_NICK_VAR) & (0x30))
++ 	{
++ 		if (get_string_var(RANDOM_BASE_VAR))
++ 			strmcpy (kn, get_string_var(RANDOM_BASE_VAR), 9);
++ 		else
++ 		{
++ 			yell ("*** No value for RANDOM_BASE has been set !");
++ 			return kn;
++ 		}
++ 		if (get_int_var(RANDOM_NICK_VAR) & 0x10)
++ 		{
++ 			kn[8] = '\0';
++ 			sprintf (kn, "%s%c", kn, '0'+count++);
++ 			if (count == 10)
++ 				count = 0;
++ 		}
++ 		else if (get_int_var(RANDOM_NICK_VAR) & 0x20)
++ 		{
++ 			int i = rand()%strlen(get_string_var(RANDOM_BASE_VAR));
++ 			int n = 10;
++ 			
++ 			while (n && (translatechar[!strchr(nickchar,kn[i])
++ 						   ||strchr(nickchar,kn[i])-nickchar]==kn[i]))
++ 			{
++ 				i = rand()
++ 				    % strlen(get_string_var(RANDOM_BASE_VAR));
++ 				n--;
++ 			}
++ 			if (n) 
++ 				if (!i || !strchr(nickchar,kn[i]))
++ 					strcat (kn, "_");
++ 				else
++ 					kn[i] = translatechar[strchr(nickchar,kn[i])-nickchar];
++ 		}
++ 	}
++ 	if (get_int_var(RANDOM_NICK_VAR) & 0x80)
++ 		say ("Trying random nick : %s", kn);
++ 	return kn;
++ }
+  
+  static	void	reset_nickname _((void));
+  static	void	nickname_in_use _((char *, char **));
+***************
+*** 173,179 ****
+  	else
+  	{
+  		say("illegal nickname, try again");
+! 		if (!dumb)
+  			add_wait_prompt("Nickname: ", nickname_sendline, data,
+  					WAIT_PROMPT_LINE);
+  	}
+--- 231,237 ----
+  	else
+  	{
+  		say("illegal nickname, try again");
+! 		if (!dumb && !(get_int_var(RANDOM_NICK_VAR) & 0x40))
+  			add_wait_prompt("Nickname: ", nickname_sendline, data,
+  					WAIT_PROMPT_LINE);
+  	}
+***************
+*** 187,203 ****
+  reset_nickname()
+  {
+  	char	server_num[10];
+  
+  	if (already_doing_reset_nickname)
+  		return;
+! 	say("You have specified an illegal nickname");
+  	if (!dumb)
+  	{
+  		already_doing_reset_nickname = 1;
+! 		say("Please enter your nickname");
+! 		sprintf(server_num, "%d", parsing_server_index);
+! 		add_wait_prompt("Nickname: ", nickname_sendline, server_num,
+  			WAIT_PROMPT_LINE);
+  	}
+  	update_all_status();
+  }
+--- 245,277 ----
+  reset_nickname()
+  {
+  	char	server_num[10];
++ 	char	*new_nick;
+  
+  	if (already_doing_reset_nickname)
+  		return;
+! 	if (get_int_var(RANDOM_NICK_VAR) & 0x1
+! 	    && !is_server_connected(parsing_server_index))
+! 	{
+! 		say("You had specified an illegal nickname, let me help you");
+! 		new_nick = random_nick_gen ();
+! 		send_to_server("NICK %s", new_nick);
+! 		set_server_nickname(parsing_server_index, new_nick);
+! 	}
+! 	else
+! 	{
+  	if (!dumb)
+  	{
++ 			if (!is_server_connected(parsing_server_index))	
++ 				say("You have specified an illegal nickname, please enter your nickname");
++ 			if (!(get_int_var(RANDOM_NICK_VAR) & 0x40))
++ 			{
+  		already_doing_reset_nickname = 1;
+! 				sprintf(server_num, "%d",parsing_server_index);
+! 				add_wait_prompt("Nickname: ", 
+! 						nickname_sendline, server_num,
+  			WAIT_PROMPT_LINE);
++ 			}
++ 		}
+  	}
+  	update_all_status();
+  }
+diff -crBb ircii-2.8.15.Mar07/source/server.c ircii-2.8.15.Mar07+krys/source/server.c
+*** ircii-2.8.15.Mar07/source/server.c	Fri Mar  1 14:00:44 1996
+--- ircii-2.8.15.Mar07+krys/source/server.c	Thu Mar  7 11:58:23 1996
+***************
+*** 895,902 ****
+  			new_free(&connect_next_password);
+  		}
+  		if (server_list[from_server].nickname == (char *) 0)
+  			malloc_strcpy(&(server_list[from_server].nickname),
+! 					nickname);
+  		server_list[from_server].flags &= ~LOGGED_IN;
+  		/*
+  		 * this used to be an ifndef NON_BLOCKING_CONNECTS .. we want to do this
+--- 907,927 ----
+  			new_free(&connect_next_password);
+  		}
+  		if (server_list[from_server].nickname == (char *) 0)
++ 			if (get_int_var(RANDOM_NICK_VAR) & 2)
++ 				malloc_strcpy(&(server_list[from_server].nickname), random_nick_gen ());
++ 			else 
++ 				malloc_strcpy(&(server_list[from_server].nickname), nickname);
++ 		
++ 		else if (((get_int_var(RANDOM_NICK_VAR) & 4)
++ 			  && ((c_server == from_server) 
++ 			      || (c_server == -1)))
++ 			 || ((get_int_var(RANDOM_NICK_VAR) & 8) 
++ 			     && (c_server != from_server)))
++ 		{
++ 			new_free(&(server_list[from_server].nickname));
+  			malloc_strcpy(&(server_list[from_server].nickname),
+! 				      random_nick_gen ());
+! 		}
+  		server_list[from_server].flags &= ~LOGGED_IN;
+  		/*
+  		 * this used to be an ifndef NON_BLOCKING_CONNECTS .. we want to do this
+diff -crBb ircii-2.8.15.Mar07/source/vars.c ircii-2.8.15.Mar07+krys/source/vars.c
+*** ircii-2.8.15.Mar07/source/vars.c	Fri Mar  1 14:00:45 1996
+--- ircii-2.8.15.Mar07+krys/source/vars.c	Thu Mar  7 11:58:24 1996
+***************
+*** 29,34 ****
+--- 29,35 ----
+  #include "translat.h"
+  #include "ircterm.h"
+  #include "output.h"
++ #include "screen.h"
+  
+  /* IrcVariable: structure for each variable in the variable table */
+  typedef struct
+***************
+*** 142,147 ****
+--- 143,150 ----
+  	{ "NOTIFY_LEVEL",		STR_TYPE_VAR,	0, NULL, set_notify_level, 0, 0 },
+  	{ "NOTIFY_ON_TERMINATION",	BOOL_TYPE_VAR,	DEFAULT_NOTIFY_ON_TERMINATION, NULL, NULL, 0, VF_NODAEMON },
+  	{ "NOVICE",			BOOL_TYPE_VAR,	1, NULL, NULL, 0, 0 },
++ 	{ "RANDOM_BASE",                STR_TYPE_VAR, 0, NULL, NULL, 0, 0},
++ 	{ "RANDOM_NICK",                INT_TYPE_VAR, 0, NULL, NULL, 0, 0},
+  	{ "REALNAME",			STR_TYPE_VAR,	0, 0, set_realname, 0, VF_NODAEMON },
+  	{ "SAME_WINDOW_ONLY",		BOOL_TYPE_VAR,	DEFAULT_SAME_WINDOW_ONLY, NULL, NULL, 0, 0 },
+  	{ "SCREEN_OPTIONS", 		STR_TYPE_VAR,	0, NULL, NULL, 0, VF_NODAEMON },
+>Audit-Trail:
+>Unformatted:
+
+
+

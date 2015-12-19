@@ -1,0 +1,8 @@
+#	$eterna: channel,v 1.2 2001/08/12 15:57:10 mrg Exp $
+#
+# Channel alias, makes channel a part-and-join command.
+#
+alias channel {
+    if (([#]==[$[1]C]) || ([&] == [$[1]C])) {part $C}
+    join $*
+}

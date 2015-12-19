@@ -1,0 +1,10 @@
+#	$eterna: version,v 1.9 2014/03/14 20:59:19 mrg Exp $
+#
+#
+# This file names the script set version. Future updates to
+# IRCII may be made as updates to the script files. This file
+# sets the CLIENTINFO variable so as to indicate the client
+# version and scripts version
+#
+
+set CLIENT_INFORMATION ircii 20140311: AT&T you will (ojnk!)

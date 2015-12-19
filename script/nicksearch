@@ -1,0 +1,67 @@
+###
+### vim:ts=8 ai si sw=4 sta sm:
+### $Id: nicksearch,v 1.1 2015/11/22 09:53:43 mrg Exp $
+### Highlight your Nickname whenever it's said on a channel
+###
+# requires:	hlword()
+# warning:	redefines some public output.
+#               you need to change 'sec' to your own nickname, of course
+
+alias ns.help {
+	echo *** This is the nicksearch Script.
+	echo *** features include:
+	echo *** + Whenever some says your Nick on the channel,
+	echo ***   your nick will be ${ns.hl}highlited${ns.hl}
+}
+
+# Highlite-sequence
+assign ns.hl 
+
+# Highlite-word (usually your Nickname) case-insensitive
+if (![$ns.nick]) {
+assign ns.nick Sec
+}
+
+eval if (!match(%+ns% $script_info)){
+assign script_info $script_info+ns
+};set client_info Sec$script_info
+
+# Don't overwrite redefined output if timestamp is in use.
+if (!match(%+ts% $script_info)){
+alias _.ONPUBLICPRT {echo <$0> $2-}
+}
+
+alias _.ONACTIONPRT {
+    if ([$1]==[$C]){
+	echo * $0 $2-
+    }{
+	if ([$1]==[$N]){
+	    echo *> $0 $2-
+	}{
+	    echo * $0:$1 $2-
+	}
+    }
+}
+
+eval on ^public "% % *${ns.nick}*" _.onpublicprt $$0 $$1 $$hlword\($$match\(*${ns.nick}* $$2-\) $$2-\)
+eval on ^action "% % *${ns.nick}*" _.onactionprt $$0 $$1 $$hlword\($$match\(*${ns.nick}* $$2-\) $$2-\)
+
+#------------------------------------------------------------------------------#
+# The $hlword function might already be defined elsewhere.
+# You may then safely omit it here.
+#------------------------------------------------------------------------------#
+
+# the $hlword(index string) function.
+alias hlword {
+	if ([$0] > 1) {
+	    @ _.nw.sep = [ ]
+	}{
+	    @ _.nw.sep = []
+	}
+	if ([$0] < rmatch($~ $1-)){
+	    @ _.nw.sep2 = [ ]
+	}{
+	    @ _.nw.sep2 = []
+	}
+        @ function_return = [$(1-${[$0]-1})] ## [$_.nw.sep] ## [${ns.hl}$(${[$0]})${ns.hl}] ## [$_.nw.sep2] ## [$(${[$0]+1}-)]
+}

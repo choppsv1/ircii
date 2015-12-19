@@ -1,0 +1,14 @@
+#	$eterna: example_menu,v 1.3 2014/03/14 20:59:18 mrg Exp $
+# Test menu to see how our menu reader works
+
+MENU Main Menu
+	OPTION "This menu" MENU Main Menu
+	OPTION "List Channels" COMMAND LIST
+	OPTION "Join Channel" COMMAND INPUT "Join Channel: " JOIN $*
+	OPTION "Leave Channel" COMMAND PART *
+	OPTION "Change Name" COMMAND INPUT "New NickName: " NICK $*
+	OPTION "Private Message" COMMAND INPUT "Person to send message to: " INPUT "Text of message: " MSG $* $$*
+	OPTION "Say something" COMMAND INPUT "Say: " SAY $*
+	OPTION "Exit Menu" EXIT
+	OPTION "Exit IRC" COMMAND INPUT "Really quit? " if ( [$0] == [y] ) { QUIT }
+	OPTION "Kill Menu" COMMAND set -menu

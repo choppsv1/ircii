@@ -1,0 +1,24 @@
+#	$eterna: otherstatus,v 1.2 2001/08/12 15:57:11 mrg Exp $
+#
+# status line modifiers that phone uses.
+#
+
+# this one for bold
+^assign blah 
+# this one for underline
+#^assign blah 
+# this one for inverse
+#^assign blah
+eval ^set status_format $(blah)  [%R]%T %*%@%N%#%S%H%B%Q%A%C$(blah)%+%I$(blah)%O%M%F%U$(blah)%X$(blah)%Y$(blah)%Z$(blah) %W
+eval ^set status_clock  %T$(blah)
+eval ^set status_umode  (+%#)$(blah)
+eval ^set status_channel  on %C$(blah)
+eval ^set status_mode  (+%+)$(blah)
+eval ^set status_hold  --- more ---
+eval ^set status_server  via %S$(blah)
+eval ^set status_away  (away)$(blah)
+eval ^set status_notify  <!%F!>$(blah)
+eval ^set status_query  [Query: %Q]$(blah)
+eval ^set status_mail  [Mail: %M]$(blah)
+eval ^set status_hold_lines  (%B)$(blah)
+eval ^set status_window $(blah)~~~~

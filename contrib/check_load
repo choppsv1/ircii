@@ -1,0 +1,267 @@
+From taner@BOOM.extern.ucsd.edu  Mon May  6 01:59:29 1996
+Received: from BOOM.extern.ucsd.edu (taner@BOOM.extern.ucsd.edu [132.239.213.10]) by eterna.com.au (8.7.4/8.7.3) with ESMTP id BAA18946 for <ircii-bugs@splode.eterna.com.au>; Mon, 6 May 1996 01:59:16 +1000 (EST)
+Received: from taner@localhost by BOOM.extern.ucsd.edu (8.7.3/BOOM-v1.5 PID 3214) id IAA03214; Sun, 5 May 1996 08:59:07 -0700
+Message-Id: <199605051559.IAA03214@BOOM.extern.ucsd.edu>
+Date: Sun, 5 May 1996 08:59:07 -0700
+From: taner@sdsc.edu
+Reply-To: taner@sdsc.edu
+To: ircii-bugs@eterna.com.au
+Cc: taner@sdsc.edu
+Subject: adds client-level load control (req. by several admins)
+X-Send-Pr-Version: 3.96
+
+>Number:         95
+>Category:       change-request
+>Synopsis:       adds client-level load control (req. by several admins)
+>Confidential:   no
+>Severity:       non-critical
+>Priority:       medium
+>Responsible:    mrg-pr (matthew green)
+>State:          open
+>Class:          change-request
+>Submitter-Id:   net
+>Arrival-Date:   Mon May  6 02:17:01 1996
+>Last-Modified:
+>Originator:     Taner Halicioglu
+>Organization:
+San Diego Supercomputer Center
+>Release:        2.8.15
+>Environment:
+i486DX4/100, Linux 1.3.*, gcc2.7.2, libc 5.2.x
+	
+System: Linux BOOM 1.3.94 #22 Tue Apr 23 12:19:20 PDT 1996 i486
+Architecture: i486
+
+>Description:
+This adds a call to /usr/bin/uptime (or wherever it lives) that gets called
+about once a minute.  If the load average is greater than the specified
+maximum, the user is warned n number of times before being 'removed' from irc.
+This *may* break on systems with strange 'uptime' outputs - but can be easily
+changed.  Works on Linux, SunOS, OSF/1 and IRIX (at least).
+	
+>How-To-Repeat:
+	
+>Fix:
+	
+Patch is as follows (diff versus 2.8.15):
+[------------------------------------------------------------------------]
+diff -N -c -r ircii-2.8.15/ChangeLog.th ircii-2.8.15+th/ChangeLog.th
+*** ircii-2.8.15/ChangeLog.th	Wed Dec 31 16:00:00 1969
+--- ircii-2.8.15+th/ChangeLog.th	Wed Mar 13 16:29:59 1996
+***************
+*** 0 ****
+--- 1,6 ----
++ Taner's Changelog:
++ 
++ * Added #define CHECK_LOAD... for all those sysadmins that want to be
++   able to disable the use of irc when your system is loaded.
++   You need to set:
++   UPTIME_PATH, MAX_LOAD, and MAX_WARN_LOAD in include/config.h
+diff -N -c -r ircii-2.8.15/include/config.h ircii-2.8.15+th/include/config.h
+*** ircii-2.8.15/include/config.h	Wed Dec 13 15:53:13 1995
+--- ircii-2.8.15+th/include/config.h	Mon Apr  8 23:05:23 1996
+***************
+*** 86,91 ****
+--- 86,104 ----
+  #define PAUSE_AFTER_MOTD 1
+  
+  /*
++  * Here we define whether or not we want to check system load levels,
++  * what the max acceptable level is, and how many warnings we will give
++  * before exiting.
++  */
++ 
++ #define CHECK_LOAD
++ #ifdef CHECK_LOAD
++ # define UPTIME_PATH    "/usr/bin/uptime"
++ # define MAX_LOAD       5.00
++ # define MAX_WARN_LOAD  3
++ #endif /* CHECK_LOAD */
++ 
++ /*
+   * Below are the IRCII variable defaults.  For boolean variables, use 1 for
+   * ON and 0 for OFF.  You may set string variable to NULL if you wish them to
+   * have no value.  None of these are optional.  You may *not* comment out or
+diff -N -c -r ircii-2.8.15/include/irc.h ircii-2.8.15+th/include/irc.h
+*** ircii-2.8.15/include/irc.h	Wed Dec  6 06:49:16 1995
+--- ircii-2.8.15+th/include/irc.h	Tue Mar 12 17:46:48 1996
+***************
+*** 283,288 ****
+--- 283,296 ----
+  	void	parse_notice _((char *, char **));
+  	void	irc_quit _((unsigned char, char *));
+  
++ /*
++  * Load average stuff...   -Taner
++  */
++ #ifdef CHECK_LOAD
++ extern int	load_warnings;
++ extern float	load_AVG;
++ #endif /* CHECK_LOAD */
++ 
+  typedef	struct	WhoisStuffStru
+  {
+  	char	*nick;
+diff -N -c -r ircii-2.8.15/source/irc.c ircii-2.8.15+th/source/irc.c
+*** ircii-2.8.15/source/irc.c	Fri Mar  1 03:06:18 1996
+--- ircii-2.8.15+th/source/irc.c	Mon Apr 22 21:07:49 1996
+***************
+*** 81,86 ****
+--- 81,91 ----
+  	waiting = 0,				/* used by /WAIT command */
+  	who_mask = 0;				/* keeps track of which /who
+  						 * switchs are set */
++ #ifdef CHECK_LOAD
++ int	load_warnings = 0;			/* Number of warnings so far */
++ float	load_AVG = 0.0;				/* Current load average */
++ float	update_load((int));			/* Get the current load avg */
++ #endif /* CLIENT_LOAD */
+  
+  char	*zero	= "0";
+  char	*one	= "1";
+***************
+*** 905,910 ****
+--- 910,920 ----
+  				status_update(1);
+  				cursor_to_input();
+  			}
++ #ifdef CHECK_LOAD
++ 			load_AVG = update_load(0);
++ 			/* We need to update the status bar */
++ 			build_status((char *) 0);
++ #endif /* CHECK_LOAD */
+  			if (primary_server != -1)
+  				do_notify();
+  		}
+***************
+*** 943,948 ****
+--- 953,961 ----
+  	char	*channel;
+  
+  	start_time = time((time_t *)0);
++ #ifdef CHECK_LOAD
++ 	load_AVG = update_load(1);
++ #endif /* CHECK_LOAD */
+  #ifdef	SOCKS
+  	SOCKSinit(argv[0]);
+  #endif /* SOCKS */
+***************
+*** 1083,1085 ****
+--- 1096,1175 ----
+  	irc_exit();
+  	return;
+  }
++ 
++ #ifdef CHECK_LOAD
++ /*
++  * Check the current system load average.  If it is above MAX_LOAD
++  * then warn the user, and increment the warning counter.
++  * If we exceed MAX_WARN_LOAD, then exit.
++  *		Added by Taner Halicioglu (taner@SDSC.EDU)
++  */
++ 
++ float
++ update_load(int init_load)
++ {
++ 	FILE	*fp;
++ 	char	load[100];
++ 	float	load_1 = 0.0;
++ 	char	l1[10], l5[10], l15[10];
++ 	int		done, fin, tmp;
++ 
++ 	/*
++ 	 * Since this (hopefully) will only err out once (the first time),
++ 	 * we should use fprintf's to stderr since say(), etc won't work
++ 	 * yet.  Note, man page for popen() says it DOES NOT reliably set errno.
++ 	 */
++ 	if ((fp = popen(UPTIME_PATH,"r")) == NULL) {
++ 		fprintf(stderr,"HELP!! Please tell you admins that %s is not",
++ 			UPTIME_PATH)
++ 		fprintf(stderr,"the correct path to the 'uptime' executable!!");
++ 		exit(-1);
++ 	}
++ 	done = 0;
++ 	while (!done) {
++ 		fin = fscanf(fp, "%s", load);
++ 		done = !strncmp(load, "averag", 6);
++ 		done = (done || (fin == EOF));
++ 	}
++ 	fscanf(fp, "%s %s %s", l1, l5, l15);
++ 	if (tmp = (int)index(l1, ',')) l1[tmp - (int)l1] = 0; /* blow away the comma */
++ 	pclose(fp);
++ 	load_1 = atof(l1);
++ 	if (load_1 >= MAX_LOAD) {
++ 		if (init_load) {
++ /*
++  * Internal IRC functions won't work here - nothing has been initialized
++  * so use normal fprintf() and exit().  -Taner
++  */
++ 			fprintf(stderr,"Sorry, the system load is currently %.2f, which is greater\n", load_1);
++ 			fprintf(stderr,"than the allowed maximum of %.2f.\n", MAX_LOAD);
++ 			fprintf(stderr,"Please IRC later, or from another machine.\n");
++ 			exit(-1);
++ 		}
++ 		if (++load_warnings > MAX_WARN_LOAD) {
++ 			say("\007\007Sorry, you have been warned %d times about the load",
++ 				MAX_WARN_LOAD);
++ 			say("average being too high to IRC.  Terminating session.");
++ 			send_to_server("QUIT :System load average too high %.2f > %.2f",
++ 				load_1, MAX_LOAD);
++ 			irc_exit();
++ 		} else {
++ 			say("\007%c* WARNING * WARNING * WARNING * WARNING * WARNING *%c",
++ 				REV_TOG, REV_TOG);
++ 			say("The system load average is currently %.2f.",load_1);
++ 			say("The maximum allowed level is %.2f.",MAX_LOAD);
++ 			say("This is warning number %d out of %d.", load_warnings,
++ 				MAX_WARN_LOAD);
++ 			if (load_warnings == MAX_WARN_LOAD)
++ 				say("%cThis is your last warning.%c", BOLD_TOG, BOLD_TOG);
++ 		}
++ 	} else if (load_warnings) {
++ 		say("%c* NOTICE * NOTICE * NOTICE * NOTICE * NOTICE * NOTICE *%c",
++ 			BOLD_TOG, BOLD_TOG);
++ 		say("The system load average has fallen back down to a level");
++ 		say("where IRCing is allowed (%.2f).",load_1);
++ 		load_warnings = 0;
++ 	}
++ 	return load_1;
++ }
++ #endif /* CHECK_LOAD */
+diff -N -c -r ircii-2.8.15/source/status.c ircii-2.8.15+th/source/status.c
+*** ircii-2.8.15/source/status.c	Fri Jan  5 15:14:01 1996
+--- ircii-2.8.15+th/source/status.c	Tue Mar 12 18:41:20 1996
+***************
+*** 385,392 ****
+--- 385,409 ----
+  	char	*ptr,
+  		*malloc_ptr = (char *) 0; 
+  	int	*cp;
++ #ifdef CHECK_LOAD
++ 	char	tmpstr[30];
++ #endif /* CHECK_LOAD */
+  	
+  	*buffer = (char) 0;
++ #ifdef CHECK_LOAD
++ 	*tmpstr = (char) 0;
++ /*
++  * Give them a visual reminder of the load on the status bar
++  * Put it only in the 'main' status bar.
++  */
++ 	if (k == 0) {
++ 		sprintf(tmpstr,"Load: %.2f ", (float)load_AVG);
++ 		if (load_warnings) {
++ 			strcat(tmpstr, "*TOO HIGH* ");
++ 		}
++ 	}
++ 	strmcat(buffer, tmpstr, BIG_BUFFER_SIZE);
++ #endif /* CHECK_LOAD */
+  	while (format)
+  	{
+  		if ((ptr = (char *) index(format, '%')) != NULL)
+[------------------------------------------------------------------------]
+>Audit-Trail:
+>Unformatted:
+
+
+

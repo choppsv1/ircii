@@ -1,0 +1,16 @@
+#	$eterna: smileys,v 1.2 2001/08/12 15:57:12 mrg Exp $
+#
+# Reverse smileys.. the way I like them  *grin*
+#
+bind meta2-: type  :)
+bind meta2-( type  :(
+bind meta2-* type  :*
+bind meta2-I type  :I
+bind meta2-# type  :#
+bind meta2-; type  ;)
+
+# Experimental.. a boldface!
+#
+bind meta2-) type  :)
+
+# lynx91,92

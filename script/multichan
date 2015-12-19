@@ -1,0 +1,70 @@
+#	$eterna: multichan,v 1.2 2003/12/02 12:40:22 mrg Exp $
+#
+# this is an example script to use to setup multiple channels
+# and servers in a relatively working way.  copy this script in
+# to your ~.irc/, modify it and add "load multichan" to your
+# ~/.ircrc.  you may want to leave the messages window commented.
+
+alias multi.newwin
+{
+	^window new hide
+	^window swap last scroll on level none notify_level dcc,public,msgs,notices,actions
+}
+
+# first setup the channels.  in this example we have a total
+# of 6 windows:
+#	1 - irc on channel #one server local.irc.server.one.com
+#	2 - irc on channel #two server local.irc.server.one.com
+#	3 - irc on channel #three server far.irc.server.one.com
+#	4 - query to dcc chat connection to "nick"
+#	5 - icb on group frobnitz to server the.icb.server.com
+#	6 - irc dcc & messages for server local.irc.server.one.com
+# we set each windows "server group" via the addgroup command
+# to some unique name.  this ensures reconnections work properly.
+
+# for each of the below sections, the example code is given a
+# double hash comment prefix (##).  you must uncomment and modify
+# most of these lines to suit your own setup.
+
+# window 1
+# (window 1 is already created; no need to call multi.newwin)
+## window addgroup local channel #one bind #one
+
+# window 2
+## multi.newwin
+## window addgroup local channel #two bind #two
+
+# window 3
+## multi.newwin
+## window addgroup far channel #three bind #three
+
+# window 4
+## multi.newwin
+## query =nick
+
+# window 5
+## multi.newwin
+## window addgroup icb
+
+# create the messages window
+# - you may not want to create a message window
+# - the "goto 2" below does NOT refer to "window 2".  see
+# /help window goto for details.
+## window new name msgs level msgs,dcc addgroup local
+## window goto 2
+
+
+# now that we've setup all the channels, it's safe to attempt
+# connections to the servers.  (there are strange interactions
+# [bugs] in the multi-server code and the code that attempts
+# to not hang the client while connecting to the server.)
+
+# the "swap 1", "swap 3" and "swap 5" commands each refer to
+# window 1, window 3 and window 5 respectively.
+## window swap 1 server local.irc.server.one.com
+## window swap 3 server far.irc.server.one.com
+## window swap 5 server ICB/the.icb.server.com::::frobnitz
+
+
+# finally return to the first window, we're done
+## window swap 1

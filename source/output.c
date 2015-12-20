@@ -410,11 +410,15 @@ display_colours(int fgcolour, int bgcolour, int bold, int underline, int high)
 				else
 					iso[len++] = '3';
 				iso[len++] = trans[fgcolour];
-			} else {
+			}
+#if 0
+                        /* Need to change internal encoding to support */
+                        else {
 				/* ITU T.416 (use ; instead of : * for legacy */
 				len += sprintf(CP(&iso[len]), ";38;5;%d",
 				    fgcolour);
 			}
+#endif
 		}
 		if (bgcolour >= 0 && bgcolour < 256) {
 			if (bgcolour < 16) {
@@ -426,11 +430,15 @@ display_colours(int fgcolour, int bgcolour, int bold, int underline, int high)
 					iso[len++] = '0';
 				}
 				iso[len++] = trans[bgcolour];
-			} else {
+			}
+#if 0
+                        /* Need to change internal encoding to support */
+                        else {
 				/* ITU T.416 (use ; instead of : * for legacy */
 				len += sprintf(CP(&iso[len]), ";48;5;%d",
 				    bgcolour);
 			}
+#endif
 		}
 		iso[len++] = 'm';
 		fwrite(CP(iso), len, 1,

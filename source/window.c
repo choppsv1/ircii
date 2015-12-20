@@ -1142,7 +1142,8 @@ add_to_window(Window *window, u_char *str)
 		display_highlight(OFF);
 		display_bold(OFF);
 		display_colours(get_int_var(FOREGROUND_COLOUR_VAR),
-		    get_int_var(BACKGROUND_COLOUR_VAR));
+		    get_int_var(BACKGROUND_COLOUR_VAR),
+		    OFF, OFF, OFF);
 		memmove(my_str, str, len);
 		my_str[len] = ALL_OFF;
 		my_str[len + 1] = '\0';

@@ -329,7 +329,7 @@ display_bold(int flag)
 /* display_colours sets the foreground and background colours of the display
  */
 void
-display_colours(int fgcolour, int bgcolour)
+display_colours(int fgcolour, int bgcolour, int bold, int underline, int high)
 {
 	if (get_int_var(COLOUR_VAR))
 	{
@@ -351,19 +351,90 @@ display_colours(int fgcolour, int bgcolour)
 		static const u_char trans[] = "7042115332664507";
 		static const u_char bolds[] = "1000100011011110";
 		                            /* 0123456789ABCDEF */
-		
-		u_char iso[15]; /* long enough for "e[0;1;5;37;40m" */
-		
-		snprintf(CP(iso), sizeof iso, "\33[0;");
-		if (bolds[fgcolour] == '1')
-			my_strcat(iso, "1;");
-		if (bolds[bgcolour] == '1')
-			my_strcat(iso, "5;");
-		snprintf(CP(my_index(iso, 0)), 7, "3%c;4%cm",
-			 trans[fgcolour&15], trans[bgcolour&15]);
-		
-		fwrite(CP(iso), my_strlen(iso), 1,
-		       screen_get_fpout(get_current_screen()));
+
+		/*
+		 * We use AIX codes (fg: 9x, bg 10x for bright colors
+		 * to a allow for all 16 colors. It's not 6429 ECMA
+		 * standard, but then we aren't using termcap/terminfo
+		 * either, are we?
+		 *
+		 * Useful Colors ANSI <-> mIRC
+		 *
+		 * | Value | mIRC Colour | Value  | ANSI 8/16-color |
+		 * |-------+-------------+--------+-----------------|
+		 * |     0 | Light Gray  | 15 (7) | White           |
+		 * |     1 | White       | 0      | Black           |
+		 * |     2 | Light Red   | 4      | Blue            |
+		 * |     3 | Blue        | 2      | Green           |
+		 * |     4 | Light Green | 9 (1)  | Light Red       |
+		 * |     5 | Black       | 1      | Red             |
+		 * |     6 | Brown       | 5      | Magenta         |
+		 * |     7 | Green       | 3      | Yellow          |
+		 * |     8 | Light Cyan  | 11 (3) | Light Yellow    |
+		 * |     9 | Cyan        | 10 (2) | Light Green     |
+		 * |    10 | Purple      | 6      | Cyan            |
+		 * |    11 | Gray        | 14 (6) | Light Cyan      |
+		 * |    12 | Light Blue  | 12 (4) | Light Blue      |
+		 * |    13 | Pink        | 13 (5) | Light Magenta   |
+		 * |    14 | Yellow      | 8 (0)  | Dark Gray       |
+		 * |    15 | Orange      | 7      | White/Gray      |
+		 *
+		 * Longest format stirng:
+		 *
+		 * e[0;1;5;7;38:2:RRR:GGG:BBB;48:2:RRR:GGG:BBBm
+		 * 012345678901234567890123456789012345678901234
+		 *   0         1         2         3         4
+		 *
+		 * - chopps
+		 */
+		u_char iso[45] = "\33[0";
+		int len = 3;
+
+		if (bold && get_int_var(BOLD_VIDEO_VAR)) {
+			iso[len++] = ';';
+			iso[len++] = '1';
+		}
+		if (underline && get_int_var(UNDERLINE_VIDEO_VAR)) {
+			iso[len++] = ';';
+			iso[len++] = '4';
+		}
+		if (high && get_int_var(INVERSE_VIDEO_VAR)) {
+			iso[len++] = ';';
+			iso[len++] = '7';
+		}
+		if (fgcolour >= 0 && fgcolour < 256) {
+			if (fgcolour < 16) {
+				iso[len++] = ';';
+				if (bolds[fgcolour] == '1')
+					iso[len++] = '9';
+				else
+					iso[len++] = '3';
+				iso[len++] = trans[fgcolour];
+			} else {
+				/* ITU T.416 (use ; instead of : * for legacy */
+				len += sprintf(CP(&iso[len]), ";38;5;%d",
+				    fgcolour);
+			}
+		}
+		if (bgcolour >= 0 && bgcolour < 256) {
+			if (bgcolour < 16) {
+				iso[len++] = ';';
+				if (bolds[bgcolour] == '0')
+					iso[len++] = '4';
+				else {
+					iso[len++] = '1';
+					iso[len++] = '0';
+				}
+				iso[len++] = trans[bgcolour];
+			} else {
+				/* ITU T.416 (use ; instead of : * for legacy */
+				len += sprintf(CP(&iso[len]), ";48;5;%d",
+				    bgcolour);
+			}
+		}
+		iso[len++] = 'm';
+		fwrite(CP(iso), len, 1,
+		    screen_get_fpout(get_current_screen()));
 	}
 }
 
@@ -533,7 +604,7 @@ output_line(const u_char *str, int startpos)
 
 	display_highlight(high);
 	display_bold(bold);
-	display_colours(fgcolour, bgcolour);
+	display_colours(fgcolour, bgcolour, bold, !underline, high);
 	/* do processing on the string, handle inverse and bells */
 	display_nonshift();
 	while (*str)
@@ -572,8 +643,9 @@ output_line(const u_char *str, int startpos)
 				display_highlight(OFF);
 				display_bold(OFF);
 				display_colours(
-					fgcolour = fgcolour_user,
-				    bgcolour = bgcolour_user);
+				    fgcolour = fgcolour_user,
+				    bgcolour = bgcolour_user,
+				    OFF, OFF, OFF);
 				high = 0;
 				bold = 0;
 			}
@@ -644,7 +716,7 @@ output_line(const u_char *str, int startpos)
 				
 				++str;
 			}
-			display_colours(fgcolour, bgcolour);
+			display_colours(fgcolour, bgcolour, bold, !underline, high);
 			break;
 		case FULL_OFF:
 			++str;
@@ -657,11 +729,11 @@ output_line(const u_char *str, int startpos)
 			display_highlight(OFF);
 			display_bold(OFF);
 			display_colours(
-				fgcolour = fgcolour_user,
-			    bgcolour = bgcolour_user);
+			    fgcolour = fgcolour_user,
+			    bgcolour = bgcolour_user,
+			    OFF, OFF, OFF);
 			high = 0;
 			bold = 0;
-			/* fgcolour = bgcolour = 16; */
 			break;
 		case '\007':
 			/* After we display everything, we beep the terminal */

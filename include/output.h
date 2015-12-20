@@ -50,7 +50,7 @@
 	void	put_file(u_char *);
 	u_char	display_highlight(int);
 	u_char	display_bold(int);
-	void	display_colours(int, int);
+	void	display_colours(int, int, int, int, int);
 	int	rite(Window *, u_char *, int, int, int, int);
 	int	get_underline(void);
 	void	set_underline(int);

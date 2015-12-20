@@ -343,7 +343,7 @@ decode_colour(u_char **ptr, int *fg, int *bg)
 
 	/*
 	 * mIRC doesn't accept codes beginning with comma (,),
-	 * VIRC accepts. mIRC is out authority in this case.
+	 * VIRC accepts. mIRC is our authority in this case.
 	 */
 	c = **ptr;
 	if (c < '0' || c > '9')
